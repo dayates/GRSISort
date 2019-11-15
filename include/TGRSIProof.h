@@ -8,6 +8,8 @@
 #define TGRSIPROOF_H
 
 #include "Globals.h"
+#include "TGRSIOptions.h"
+#include "TParserLibrary.h"
 
 #include <iostream>
 #include <sstream>
@@ -61,13 +63,22 @@ public:
 
       // First set the include path on each slave
       Exec(Form(R"(gInterpreter->AddIncludePath("%s/include"))", pPath));
-      std::cout<<"Loading Libraries"<<std::endl;
-      Exec(Form(R"(gSystem->Load("%s/lib/libGRSI.so");)", pPath));
-   }
+      std::cout<<"Loading library '"<<pPath<<"/lib/libGRSI.so'"<<std::endl;
+		Exec(Form(R"(gSystem->Load("%s/lib/libGRSI.so");)", pPath));
+		// if we have a data parser/detector library load it
+		std::string library = TGRSIOptions::Get()->ParserLibrary();
+		if(library.empty()) {
+			std::cout<<DYELLOW<<"Not loading any parser library, this might not work!"<<RESET_COLOR<<std::endl;
+		} else {
+			std::cout<<"Loading parser library '"<<library<<"'"<<std::endl;
+			Exec(Form(R"(gSystem->Load("%s");)", library.c_str()));
+			TParserLibrary::Get()->Load();
+		}
+	}
 
-   /// \cond CLASSIMP
-   ClassDefOverride(TGRSIProof, 1); // Event Fragments
-   /// \endcond
+	/// \cond CLASSIMP
+	ClassDefOverride(TGRSIProof, 1); // Event Fragments
+	/// \endcond
 };
 /*! @} */
 #endif // TGRSIProof_H

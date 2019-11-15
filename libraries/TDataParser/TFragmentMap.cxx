@@ -159,7 +159,7 @@ bool TFragmentMap::Add(std::shared_ptr<TFragment> frag, std::vector<Int_t> charg
       switch(dropped) {
       case 0: // dropped e0, so only e0+e1 and e1 are left
          frags[0]->SetCharge(c[0] - charge[0] / integrationLength[0]);
-         frags[1]->SetCharge(charge[0]);
+         frags[1]->SetCharge(charge[0] / integrationLength[0]);
          frags[0]->SetKValue(1);
          frags[1]->SetKValue(1);
          frags[0]->SetNumberOfPileups(-200);
@@ -351,6 +351,10 @@ bool TFragmentMap::Add(std::shared_ptr<TFragment> frag, std::vector<Int_t> charg
 void TFragmentMap::Solve(std::vector<std::shared_ptr<TFragment>> frag, std::vector<Float_t> c, std::vector<Long_t> k2,
                          int situation)
 {
+	/// Solves minimization of charges for given integrated charges c and integration lengths k2.
+	/// Resulting charges are stored in the provided fragments with a k-value of 1.
+	/// The situation parameter distinguishes between the two different ways 3 hits can pile up with each other:
+	/// 3 - both later hits pile up with the first, any other value - the third hit only piles up with the second hit not the first one.
    switch(frag.size()) {
    case 2:
       frag[0]->SetCharge((c[0] * (k2[0] * k2[1] + k2[0] * k2[2]) + (c[1] - c[2]) * k2[1] * k2[2]) /
@@ -359,8 +363,8 @@ void TFragmentMap::Solve(std::vector<std::shared_ptr<TFragment>> frag, std::vect
                          (k2[0] * k2[1] + k2[0] * k2[2] + k2[1] * k2[2]));
       frag[0]->SetKValue(1);
       frag[1]->SetKValue(1);
-      frag[0]->SetNumberOfPileups(-2);
-      frag[1]->SetNumberOfPileups(-20);
+      frag[0]->SetNumberOfPileups(-20);
+      frag[1]->SetNumberOfPileups(-21);
       if(fDebug) {
          std::cout<<"2: charges "<<c[0]<<", "<<c[1]<<", "<<c[2]<<" and squared int. lengths "<<k2[0]
                   <<", "<<k2[1]<<", "<<k2[2]<<" => "<<frag[0]->GetCharge()<<", "<<frag[1]->GetCharge()
@@ -430,9 +434,9 @@ void TFragmentMap::Solve(std::vector<std::shared_ptr<TFragment>> frag, std::vect
       frag[0]->SetKValue(1);
       frag[1]->SetKValue(1);
       frag[2]->SetKValue(1);
-      frag[0]->SetNumberOfPileups(-3);
-      frag[1]->SetNumberOfPileups(-30);
-      frag[2]->SetNumberOfPileups(-31);
+      frag[0]->SetNumberOfPileups(-30);
+      frag[1]->SetNumberOfPileups(-31);
+      frag[2]->SetNumberOfPileups(-32);
       if(fDebug) {
          std::cout<<"3, situation "<<situation<<": charges "<<c[0]<<", "<<c[1]<<", "<<c[2]<<", "
                   <<c[3]<<", "<<c[4]<<" and squared int. lengths "<<k2[0]<<", "<<k2[1]<<", "<<k2[2]

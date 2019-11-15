@@ -3,6 +3,7 @@
 #include "TClass.h"
 #include "TDetector.h"
 #include "TChannel.h"
+#include "TSortingDiagnostics.h"
 
 TUnpackedEvent::TUnpackedEvent()
 {
@@ -15,17 +16,18 @@ void TUnpackedEvent::Build()
    for(const auto& frag : fFragments) {
       TChannel* channel = TChannel::GetChannel(frag->GetAddress());
       if(channel == nullptr) {
-         std::cout<<"Failed to find channel for address "<<frag->GetAddress()<<std::endl;
+         //std::cout<<"Failed to find channel for address "<<frag->GetAddress()<<std::endl;
+			//TODO: add this to Diagnostics
          continue;
       }
 
       TClass* detClass = channel->GetClassType();
       if(detClass == nullptr) {
-         std::cout<<"Failed to find detector class "<<channel->GetClassType()<<std::endl;
+			TSortingDiagnostics::Get()->AddDetectorClass(channel);
          continue;
       }
 
-      GetDetector(detClass, true)->AddFragment(frag, channel);
+		GetDetector(detClass, true)->AddFragment(frag, channel);
    }
 
    BuildHits();
@@ -58,7 +60,6 @@ std::shared_ptr<TDetector> TUnpackedEvent::GetDetector(TClass* cls, bool make_if
    }
 
    if(make_if_not_found) {
-      // std::shared_ptr<TDetector> output = std::make_shared<TDetector>(*static_cast<TDetector*>(cls->New()));
       std::shared_ptr<TDetector> output(static_cast<TDetector*>(cls->New()));
       fDetectors.push_back(output);
       return output;

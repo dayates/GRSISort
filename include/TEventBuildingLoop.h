@@ -26,9 +26,9 @@
 
 class TEventBuildingLoop : public StoppableThread {
 public:
-   enum class EBuildMode { kTimestamp, kTriggerId };
+   enum class EBuildMode { kDefault, kTime, kTimestamp, kTriggerId };
 
-   static TEventBuildingLoop* Get(std::string name = "", EBuildMode mode = EBuildMode::kTimestamp);
+   static TEventBuildingLoop* Get(std::string name = "", EBuildMode mode = EBuildMode::kTimestamp, long buildWindow = 2000);
    ~TEventBuildingLoop() override;
 
 #ifndef __CINT__
@@ -49,21 +49,22 @@ public:
    size_t GetItemsCurrent() override { return fOutputQueue->Size(); }
    size_t GetRate() override { return 0; }
 
-   void SetBuildWindow(long clock_ticks) { fBuildWindow = clock_ticks; }
+   void SetBuildWindow(long val) { fBuildWindow = val; }
    unsigned long            GetBuildWindow() const { return fBuildWindow; }
 
-   void SetSortDepth(int num_events) { fSortingDepth = num_events; }
+   void SetSortDepth(int val) { fSortingDepth = val; }
    unsigned int          GetSortDepth() const { return fSortingDepth; }
 
    std::string EndStatus() override;
 
 private:
-   TEventBuildingLoop(std::string name, EBuildMode mode);
+   TEventBuildingLoop(std::string name, EBuildMode mode, long buildWindow);
    TEventBuildingLoop(const TEventBuildingLoop& other);
    TEventBuildingLoop& operator=(const TEventBuildingLoop& other);
 
 #ifndef __CINT__
    bool CheckBuildCondition(const std::shared_ptr<const TFragment>&);
+   bool CheckTimeCondition(const std::shared_ptr<const TFragment>&);
    bool CheckTimestampCondition(const std::shared_ptr<const TFragment>&);
    bool CheckTriggerIdCondition(const std::shared_ptr<const TFragment>&);
 
@@ -76,6 +77,7 @@ private:
    unsigned int fSortingDepth;
    long         fBuildWindow;
    bool         fPreviousSortingDepthError;
+	bool         fSkipInputSort;
 
 #ifndef __CINT__
    std::vector<std::shared_ptr<const TFragment>> fNextEvent;

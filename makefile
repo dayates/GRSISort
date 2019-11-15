@@ -22,7 +22,7 @@ ROOT_PYTHON_VERSION=$(shell root-config --python-version)
 MATHMORE_INSTALLED:=$(shell root-config --has-mathmore)
 XML_INSTALLED:=$(shell root-config --has-xml)
 
-CFLAGS += -DMAJOR_ROOT_VERSION=${MAJOR_ROOT_VERSION}
+CFLAGS += -DMAJOR_ROOT_VERSION=${MAJOR_ROOT_VERSION} -DMINOR_ROOT_VERSION=${MINOR_ROOT_VERSION}
 ifeq ($(ROOT_PYTHON_VERSION),2.7)
   CFLAGS += -DHAS_CORRECT_PYTHON_VERSION
 endif
@@ -44,7 +44,7 @@ LINKFLAGS_PREFIX += -Wl,--no-as-needed
 SHAREDSWITCH = -shared -Wl,-soname,# NO ENDING SPACE
 HEAD=head
 FIND=find
-LIBRARY_DIRS   := $(shell $(FIND) libraries/* -type d -links 2 2> /dev/null | grep -v SourceData | grep -v SRIMData)
+LIBRARY_DIRS   := $(shell $(FIND) libraries/* -type d -maxdepth 2 2> /dev/null | grep -v SourceData | grep -v SRIMData)
 endif
 
 ROOTCINT=$(shell command -v rootcint 2> /dev/null)
@@ -130,6 +130,8 @@ endif
 
 all: include/GVersion.h grsirc $(EXECUTABLES) $(LIBRARY_OUTPUT) lib/libGRSI.so config $(HISTOGRAM_SO) $(FILTER_SO)
 	@$(FIND) .build users -name "*.pcm" -exec cp {} lib/ \;
+	@$(FIND) .build users -name "*.rootmap" -exec cp {} lib/ \;
+	@$(FIND) . -maxdepth 1 -name "*.pcm" -exec mv {} lib/ \;
 	@printf "$(OK_COLOR)Compilation successful, $(WARN_COLOR)woohoo!$(NO_COLOR)\n"
 
 docs: doxygen
@@ -166,10 +168,10 @@ include/GVersion.h:
 grsirc:
 	$(call run_and_test,util/gen_grsirc.sh,$@,$(COM_COLOR),$(BLD_STRING),$(OBJ_COLOR) )
 
-lib/lib%.so: .build/histos/%.o | lib include/GVersion.h
+lib/lib%.so: .build/histos/%.o | include/GVersion.h lib
 	$(call run_and_test,$(CPP) -fPIC $^ $(SHAREDSWITCH)lib$*.so $(ROOT_LIBFLAGS) -o $@,$@,$(BLD_COLOR),$(BLD_STRING),$(OBJ_COLOR) )
 
-lib/lib%.so: .build/filters/%.o | lib include/GVersion.h
+lib/lib%.so: .build/filters/%.o | include/GVersion.h lib
 	$(call run_and_test,$(CPP) -fPIC $^ $(SHAREDSWITCH)lib$*.so $(ROOT_LIBFLAGS) -o $@,$@,$(BLD_COLOR),$(BLD_STRING),$(OBJ_COLOR) )
 
 config: bin
@@ -205,7 +207,7 @@ find_linkdef = $(shell $(FIND) $(1) -name "*LinkDef.h")
 define library_template
 .build/$(1)/$(notdir $(1))Dict.cxx: $(1)/LinkDef.h $$(call dict_header_files,$(1)/LinkDef.h) 
 	@mkdir -p $$(dir $$@)
-	$$(call run_and_test,$$(ROOTCINT) -f $$@ -c $$(INCLUDES) $$(RCFLAGS) -p $$(notdir $$(filter-out $$<,$$^)) $$<,$$@,$$(COM_COLOR),$$(BLD_STRING) ,$$(OBJ_COLOR))
+	$$(call run_and_test,$$(ROOTCINT) -f $$@ -c $$(INCLUDES) $$(RCFLAGS) -s $(notdir $(1)) -multiDict -rml lib$(notdir $(1)).so -rmf .build/$(1)/$(notdir $(1)).rootmap -p $$(notdir $$(filter-out $$<,$$^)) $$<,$$@,$$(COM_COLOR),$$(BLD_STRING) ,$$(OBJ_COLOR))
 
 .build/$(1)/LibDictionary.o: .build/$(1)/$(notdir $(1))Dict.cxx
 	$$(call run_and_test,$$(CPP) -fPIC -c $$< -o $$@ $$(CFLAGS),$$@,$$(COM_COLOR),$$(COM_STRING),$$(OBJ_COLOR) )

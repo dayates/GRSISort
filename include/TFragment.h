@@ -8,7 +8,7 @@
 #define TFRAGMENT_H
 
 #include "Globals.h"
-#include "TGRSIDetectorHit.h"
+#include "TDetectorHit.h"
 #include "TPPG.h"
 
 #include <iostream>
@@ -26,11 +26,13 @@
 ///
 /////////////////////////////////////////////////////////////////
 
-class TFragment : public TGRSIDetectorHit {
+class TFragment : public TDetectorHit {
 public:
    TFragment();
    TFragment(const TFragment&);
    ~TFragment() override;
+
+	TFragment& operator=(const TFragment&) = default; // use default assignment operator (to shut up gcc 9.1)
 
    //////////////////// basic setter functions ////////////////////
 
@@ -42,16 +44,16 @@ public:
    void SetDeadTime(UShort_t value) { fDeadTime = value; }
    void SetDetectorType(UShort_t value) { fDetectorType = value; }
    void                          SetEntryNumber() { fEntryNumber = fNumberOfFragments++; }
-   void SetMidasId(Int_t value) { fMidasId = value; }
+   void SetDaqId(Int_t value) { fDaqId = value; }
    void SetFragmentId(Int_t value) { fFragmentId = value; }
-   void SetMidasTimeStamp(time_t value) { fMidasTimeStamp = value; }
+   void SetDaqTimeStamp(time_t value) { fDaqTimeStamp = value; }
    void SetNetworkPacketNumber(Int_t value) { fNetworkPacketNumber = value; }
    void                              SetNumberOfFilters(UShort_t)
    {
       std::cerr<<"Error, "<<__PRETTY_FUNCTION__<<" called, TFragment shouldn't have a number of filters."
                <<std::endl;
    }
-   void SetNumberOfPileups(UShort_t value) { fNumberOfPileups = value; }
+   void SetNumberOfPileups(Short_t value) { fNumberOfPileups = value; }
    void SetNumberOfWords(UShort_t value) { fNumberOfWords = value; }
    void SetTriggerBitPattern(Int_t value) { fTriggerBitPattern = value; }
    void SetTriggerId(Long_t value) { fTriggerId.push_back(value); }
@@ -67,13 +69,13 @@ public:
    UShort_t GetModuleType() const { return fModuleType; }
    UShort_t GetDeadTime() const { return fDeadTime; }
    UShort_t GetDetectorType() const { return fDetectorType; }
-   Int_t    GetMidasId() const { return fMidasId; }
+   Int_t    GetDaqId() const { return fDaqId; }
    Int_t    GetFragmentId() const { return fFragmentId; }
-   time_t   GetMidasTimeStamp() const { return fMidasTimeStamp; }
+   time_t   GetDaqTimeStamp() const { return fDaqTimeStamp; }
    Int_t    GetNetworkPacketNumber() const { return fNetworkPacketNumber; }
    UShort_t GetNumberOfFilters() const { return fNumberOfWords - 9; }
    Int_t    GetNumberOfHits() const { return 1; }
-   UShort_t GetNumberOfPileups() const { return fNumberOfPileups; }
+   Short_t GetNumberOfPileups() const { return fNumberOfPileups; }
    UShort_t GetNumberOfWords() const { return fNumberOfWords; }
    Int_t    GetTriggerBitPattern() const { return fTriggerBitPattern; }
    Long_t GetTriggerId(size_t iter = 0) const
@@ -90,7 +92,6 @@ public:
    Short_t   GetChannelNumber() const;
    TPPG*     GetPPG();
    double    GetTZero() const;
-   long      GetTimeStamp_ns() const;
    ULong64_t GetTimeInCycle();
    ULong64_t GetCycleNumber();
    size_t    GetNumberOfCharges() { return 1; }
@@ -111,8 +112,8 @@ public:
 
 private:
    //////////////////// data members, sorted by size (as far as possible) to reduce padding ////////////////////
-   time_t fMidasTimeStamp;      ///< Timestamp of the MIDAS event
-   Int_t  fMidasId;             ///< MIDAS ID
+   time_t fDaqTimeStamp;      ///< Timestamp of the Daq event
+   Int_t  fDaqId;             ///< Daq ID
    Int_t  fFragmentId;          ///< Channel Trigger ID ??? not needed anymore ???
    Int_t  fTriggerBitPattern;   ///< MasterFilterPattern in Griffin DAQ
    Int_t  fNetworkPacketNumber; ///< Network packet number
@@ -124,7 +125,7 @@ private:
    UShort_t fDeadTime;        ///< Deadtime from trigger
    UShort_t fModuleType;      ///< Data Type (GRIF-16, 4G, etc.)
    UShort_t fDetectorType;    ///< Detector Type (PACES,HPGe, etc.)
-   UShort_t fNumberOfPileups; ///< Number of piled up hits 1-3
+   Short_t  fNumberOfPileups; ///< Number of piled up hits 1-3
 
    std::vector<Long_t> fTriggerId; ///<  MasterFilterID in Griffin DAQ
 
@@ -143,7 +144,7 @@ private:
    // int HitIndex;    //!<! transient member indicating which pile-up hit this is in the original fragment
 
    /// \cond CLASSIMP
-   ClassDefOverride(TFragment, 6); // Event Fragments
+   ClassDefOverride(TFragment, 7); // Event Fragments
    /// \endcond
 };
 /*! @} */

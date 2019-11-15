@@ -292,7 +292,7 @@ void GRootBrowser::CreateBrowser(const char* name)
 GRootBrowser::~GRootBrowser()
 {
    /// Clean up all widgets, frames and layouthints that were used
-   printf("I AM HERE!\n");
+	std::cout<<__PRETTY_FUNCTION__<<std::endl;
    fflush(stdout);
 
    if(fIconPic != nullptr) {
@@ -834,7 +834,6 @@ void GRootBrowser::InitPlugins(Option_t* opt)
 
       // Canvas plugin...
       if(opt[i] == 'C') {
-         printf("I AM NOW HERE!\n");
          fflush(stdout);
          cmd.Form("new TCanvas();");
          ExecPlugin("c1", nullptr, cmd.Data(), 1);

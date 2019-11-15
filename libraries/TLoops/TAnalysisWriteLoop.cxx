@@ -16,11 +16,10 @@
 
 #include "GValue.h"
 #include "TChannel.h"
-#include "TGRSIRunInfo.h"
+#include "TRunInfo.h"
 #include "TGRSIOptions.h"
 #include "TTreeFillMutex.h"
 #include "TSortingDiagnostics.h"
-#include "TDescant.h"
 #include "TParallelFileMerger.h"
 
 TAnalysisWriteLoop* TAnalysisWriteLoop::Get(std::string name, std::string outputFilename)
@@ -100,6 +99,7 @@ bool TAnalysisWriteLoop::Iteration()
    fInputSize = fInputQueue->Pop(event);
    if(fInputSize < 0) {
       fInputSize = 0;
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
    } else {
 		++fItemsPopped;
 	}
@@ -125,7 +125,6 @@ bool TAnalysisWriteLoop::Iteration()
 	if(fInputQueue->IsFinished()) {
 		return false;
 	}
-	std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 	return true;
 }
 
@@ -133,7 +132,7 @@ void TAnalysisWriteLoop::Write()
 {
 	if(fOutputFilename != "/dev/null") {
 		gROOT->cd();
-		TGRSIRunInfo* runInfo = TGRSIRunInfo::Get();
+		TRunInfo* runInfo = TRunInfo::Get();
 		TGRSIOptions* options = TGRSIOptions::Get();
 		TPPG* ppg = TPPG::Get();
 		TSortingDiagnostics* diag = TSortingDiagnostics::Get();
@@ -141,24 +140,18 @@ void TAnalysisWriteLoop::Write()
 		TFile* outputFile = new TFile(fOutputFilename.c_str(), "update");
 		outputFile->cd();
 
-		//fEventTree->Write(fEventTree->GetName(), TObject::kOverwrite);
-
-		//if(fOutOfOrderTree != nullptr) {
-		//fOutOfOrderTree->Write(fOutOfOrderTree->GetName(), TObject::kOverwrite);
-		//}
-
 		if(GValue::Size() != 0) {
-			GValue::Get()->Write();
+			GValue::Get()->Write("Values", TObject::kOverwrite);
 		}
 		if(TChannel::GetNumberOfChannels() != 0) {
 			TChannel::WriteToRoot();
 		}
 		runInfo->WriteToRoot(outputFile);
 		options->AnalysisOptions()->WriteToFile(outputFile);
-		ppg->Write();
+		ppg->Write("PPG", TObject::kOverwrite);
 
 		if(options->WriteDiagnostics()) {
-			diag->Write();
+			diag->Write("SortingDiagnostics", TObject::kOverwrite);
 		}
 
 		outputFile->Close();

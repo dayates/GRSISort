@@ -13,13 +13,8 @@
 
 ////////////////////////////////////////////////////////////
 ///
-/// \class TGRSIMap<T>
-///
 /// This class re-implements std::map with more explicit
 /// expections replacing out-of-range exceptions.
-///
-/// all constructors were copied from http://www.cplusplus.com/reference/map/map/map/ (c++11 tab)
-/// and from bits/stl_map.h of gcc 4.9.1
 ///
 ////////////////////////////////////////////////////////////
 
@@ -28,39 +23,66 @@ class TGRSIMapException;
 
 template <typename key_type, typename mapped_type, typename key_compare = std::less<key_type>,
 			typename allocator_type = std::allocator<std::pair<const key_type, mapped_type> > >
-class TGRSIMap : public std::map<key_type, mapped_type, key_compare, allocator_type>
+class TGRSIMap
 {
 public:
-	//TGRSIMap() : std::map<key_type, mapped_type, key_compare, allocator_type>() {}
-	TGRSIMap(const key_compare& comp = key_compare(), const allocator_type& alloc = allocator_type()) : std::map<key_type, mapped_type, key_compare, allocator_type>(comp, alloc) {}
-	TGRSIMap(const allocator_type& alloc) : std::map<key_type, mapped_type, key_compare, allocator_type>(alloc) {}
-	template <class InputIterator>
-		TGRSIMap(InputIterator first, InputIterator last,
-				const key_compare& comp = key_compare(),
-				const allocator_type& alloc = allocator_type()) : std::map<key_type, mapped_type, key_compare, allocator_type>(first, last, comp, alloc) {}
-	TGRSIMap(const TGRSIMap& x) : std::map<key_type, mapped_type, key_compare, allocator_type>(x) {}
-	TGRSIMap(const TGRSIMap& x, const allocator_type& alloc) : std::map<key_type, mapped_type, key_compare, allocator_type>(x, alloc) {}
-	TGRSIMap(TGRSIMap&& x) : std::map<key_type, mapped_type, key_compare, allocator_type>(x) {}
-	TGRSIMap(TGRSIMap&& x, const allocator_type& alloc) : std::map<key_type, mapped_type, key_compare, allocator_type>(x, alloc) {}
-	//TGRSIMap(initializer_list<value_type> il,
-	//		const key_compare& comp = key_compare(),
-	//		const allocator_type& alloc = allocator_type()) : std::map<key_type, mapped_type, key_compare, allocator_type>(il, comp, alloc) {}
+	TGRSIMap() {}
 	~TGRSIMap() {}
+
+	void Print() {
+		for(auto it : fMap) {
+			std::cout<<it.first<<" - "<<it.second<<std::endl;
+		}
+	}
 
 	mapped_type& at(const key_type& k) { 
 		try {
-			return std::map<key_type, mapped_type, key_compare, allocator_type>::at(k);
+			return fMap.at(k);
 		} catch(std::exception& e) {
-			throw TGRSIMapException<key_type>(k, *this);
+			throw TGRSIMapException<key_type>(k, fMap);
 		}
 	}
 	const mapped_type& at(const key_type& k) const {
 		try {
-			return std::map<key_type, mapped_type, key_compare, allocator_type>::at(k);
+			return fMap.at(k);
 		} catch(std::exception& e) {
-			throw TGRSIMapException<key_type>(k, *this);
+			throw TGRSIMapException<key_type>(k, fMap);
 		}
 	}
+
+	      mapped_type& operator[](const key_type& k)       { return fMap[k]; }
+	const mapped_type& operator[](const key_type& k) const { return fMap[k]; }
+
+	typedef std::map<key_type, mapped_type, key_compare, allocator_type> map_t;
+	typename map_t::iterator begin()       { return fMap.begin(); }
+	typename map_t::const_iterator begin() const { return fMap.begin(); }
+	typename map_t::iterator end()       { return fMap.end(); }
+	typename map_t::const_iterator end() const { return fMap.end(); }
+
+	// capacity functions of std::map
+	bool empty() const noexcept { return fMap.empty(); }
+	size_t size() const noexcept { return fMap.size(); }
+	size_t max_size() const noexcept { return fMap.max_size(); }
+	// modifier functions of std::map
+	void clear() noexcept { fMap.clear(); }
+	//insert
+	//insert_or_assign
+	//emplace
+	//emplace_hint
+	//try_emplace
+	void erase(typename map_t::iterator pos) { fMap.erase(pos); }
+	void erase(typename map_t::iterator first, typename map_t::iterator last) { fMap.erase(first, last); }
+	void swap(map_t& other) { fMap.swap(other); }
+	// lookup functions of std::map
+	typename map_t::size_type count(const key_type* key) const { return fMap.count(key); }
+	typename map_t::iterator find(const key_type& key) { return fMap.find(key); }
+	typename map_t::const_iterator find(const key_type& key) const { return fMap.find(key); }
+	//equal_range
+	//lower_bound
+	//upper_bound
+
+private:
+	std::map<key_type, mapped_type, key_compare, allocator_type> fMap;
 };
 
 template <typename key_type>
@@ -68,7 +90,7 @@ class TGRSIMapException : public std::exception
 {
 public:
 	template<typename mapped_type, typename key_compare, typename allocator_type>
-	TGRSIMapException(const key_type key, const TGRSIMap<key_type, mapped_type, key_compare, allocator_type>& map)
+	TGRSIMapException(const key_type key, const std::map<key_type, mapped_type, key_compare, allocator_type>& map)
 		: std::exception(), fKey(key)
 		{
 			for(auto it : map) {

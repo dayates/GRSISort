@@ -29,8 +29,6 @@
 
 #include <unistd.h>
 const char* const nulFileName = "/dev/null";
-#define CROSS_DUP(fd) dup(fd)
-#define CROSS_DUP2(fd, newfd) dup2(fd, newfd)
 
 /////////////////////////////////////////////////////////////////
 ///
@@ -50,7 +48,7 @@ public:
    static TGRSIProof* Open(const char* worker = "")
    {
       TGRSIProof* p = static_cast<TGRSIProof*>(TProof::Open(worker));
-      p->LoadLibsIntoProof();
+		if(p != nullptr) p->LoadLibsIntoProof();
       return p;
    }
    void LoadLibsIntoProof()

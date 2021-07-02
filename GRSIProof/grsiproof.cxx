@@ -85,6 +85,7 @@ void Analyze(const char* tree_type)
 			std::cout<<DRED<<"Exception when processing chain: "<<e.detail()<<RESET_COLOR<<std::endl;
 			throw e;
 		}
+      std::cout<<"Done with "<<(Form("%s", macro_it.c_str()))<<std::endl;
    }
 
    // Delete the proof chain now that we are done with it.
@@ -172,9 +173,6 @@ int main(int argc, char** argv)
 
    // Add the path were we store headers for GRSIProof macros to see
    const char* pPath = getenv("GRSISYS");
-   gROOT->SetMacroPath(Form("%s", pPath));
-   gROOT->SetMacroPath(Form("%s/GRSIProof", pPath));
-   gROOT->SetMacroPath(Form("%s/myAnalysis", pPath));
    gInterpreter->AddIncludePath(Form("%s/include", pPath));
 	// if we have a data parser/detector library, add it's include path as well
 	std::string library = gGRSIOpt->ParserLibrary();
@@ -197,7 +195,7 @@ int main(int argc, char** argv)
    std::cout<<DCYAN<<"************************* MACRO COMPILATION ****************************"<<RESET_COLOR
             <<std::endl;
    for(const auto& i : gGRSIOpt->MacroInputFiles()) {
-      Int_t error_code = gSystem->CompileMacro(i.c_str(), "kO"); // k - keep shared library after session ends, O - optimize the code
+      Int_t error_code = gSystem->CompileMacro(i.c_str(), "kgO"); // k - keep shared library after session ends, g - add debuging symbols, O - optimize the code, v - verbose output
       if(error_code == 0) {
          std::cout<<DRED<<i<<" failed to compile properly.. ABORT!"<<RESET_COLOR<<std::endl;
          return 1;
@@ -205,11 +203,6 @@ int main(int argc, char** argv)
    }
    std::cout<<DCYAN<<"************************* END COMPILATION ******************************"<<RESET_COLOR
             <<std::endl;
-
-   if(!gGRSIOpt->CalInputFiles().empty()) {
-      std::cout<<DRED<<"Cal Files are currently ignored in GRSIProof, please write calibration to tree"
-               <<RESET_COLOR<<std::endl;
-   }
 
    if(!gGRSIOpt->InputFiles().empty()) {
       std::cout<<DRED<<"Can't Proof a Midas file..."<<RESET_COLOR<<std::endl;
@@ -227,7 +220,20 @@ int main(int argc, char** argv)
    }
 
    if(gGRSIProof == nullptr) {
-      std::cout<<"Can't connect to proof"<<std::endl;
+      std::cout<<"Couldn't connect to proof on first attempt, trying again"<<std::endl;
+		if(gGRSIOpt->GetMaxWorkers() >= 0) {
+			std::cout<<"Opening proof with '"<<Form("workers=%d", gGRSIOpt->GetMaxWorkers())<<"'"<<std::endl;
+			gGRSIProof = TGRSIProof::Open(Form("workers=%d", gGRSIOpt->GetMaxWorkers()));
+		} else if(gGRSIOpt->SelectorOnly()) {
+			std::cout<<"Opening proof with one worker (selector-only)"<<std::endl;
+			gGRSIProof = TGRSIProof::Open("workers=1");
+		} else {
+			gGRSIProof = TGRSIProof::Open("");
+		}
+   }
+
+   if(gGRSIProof == nullptr) {
+      std::cout<<"Still can't connect to proof, try running it again?"<<std::endl;
       return 0;
    }
 
@@ -258,6 +264,8 @@ int main(int argc, char** argv)
    Analyze("FragmentTree");
    Analyze("AnalysisTree");
    Analyze("Lst2RootTree");
+
+	AtExitHandler();
 
 	return 0;
 }

@@ -9,14 +9,17 @@
 
 class GValue : public TNamed {
 public:
-   enum class EPriority { kUser = 0, kValFile = 1, kRootFile = 2, kDefault = 999999 };
+   enum class EPriority { kUser     = 0,
+                          kValFile  = 1,
+                          kRootFile = 2,
+                          kDefault  = 999999 };
 
-   GValue();
-   GValue(const char* name);
+   GValue() = default;
+   explicit GValue(const char* name);
    GValue(const char* name, double value, EPriority priority = EPriority::kUser);
    GValue(const GValue& val);
 
-   double      GetValue() { return fValue; }
+   double      GetValue() const { return fValue; }
    const char* GetInfo() const { return info.c_str(); }
 
    void SetValue(double value) { fValue = value; }
@@ -28,10 +31,11 @@ public:
    static GValue* GetDefaultValue() { return fDefaultValue; }
    // Search fValueVector for GValue with name given by string
    static GValue* FindValue(const std::string& = "");
-   static void SetReplaceValue(const std::string& name, double value, EPriority priority = EPriority::kUser);
-   static GValue* Get(std::string name = "") { return FindValue(std::move(name)); }
-   static double                  Value(const std::string&);
-   static TList*                  AllValues()
+   static void    SetReplaceValue(const std::string& name, double value, EPriority priority = EPriority::kUser);
+   static GValue* Get(const std::string& name = "") { return FindValue(name); }
+   static double  Value(const std::string&);                  // get the named value, returns sqrt(-1) = NaN
+   static double  Value(const std::string&, const double&);   // try and find the named value, otherwise return the provided default
+   static TList*  AllValues()
    {
       auto* output = new TList;
       output->SetOwner(false);
@@ -47,24 +51,23 @@ public:
    bool AppendValue(GValue*);
    bool ReplaceValue(GValue*);
 
-   // virtual void Clear(Option_t *opt="");
+   using TNamed::Clear;
    void Print(Option_t* opt = "") const override;
    void Copy(TObject& obj) const override;
    // virtual bool Notify();
 
-   static int         Size() { return fValueVector.size(); }
+   static int         Size() { return static_cast<int>(fValueVector.size()); }
    std::string        PrintToString() const;
    static std::string WriteToBuffer(Option_t* opt = "");
-	static void			 Clear();
+   static void        Clear();
 
 private:
-   double         fValue{0.};
-   EPriority      fPriority;
-   std::string    info;
-   static GValue* fDefaultValue;
+   double                                fValue{0.};
+   EPriority                             fPriority{EPriority::kDefault};
+   std::string                           info;
+   static GValue*                        fDefaultValue;
    static std::map<std::string, GValue*> fValueVector;
-   static int ParseInputData(const std::string& input, EPriority priority, Option_t* opt = "");
-   static void trim(std::string*, const std::string& trimChars = " \f\n\r\t\v");
+   static int                            ParseInputData(const std::string& input, EPriority priority, Option_t* opt = "");
 
    ClassDefOverride(GValue, 1);
 };

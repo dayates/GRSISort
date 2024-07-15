@@ -1,5 +1,5 @@
-#ifndef _TWRITELOOP_H_
-#define _TWRITELOOP_H_
+#ifndef TWRITELOOP_H
+#define TWRITELOOP_H
 
 /** \addtogroup Loops
  *  @{
@@ -31,10 +31,13 @@ public:
    ~TFragWriteLoop() override;
 
 #ifndef __CINT__
-   std::shared_ptr<ThreadsafeQueue<std::shared_ptr<const TFragment>>>& InputQueue() { return fInputQueue; }
+   std::shared_ptr<ThreadsafeQueue<std::shared_ptr<const TFragment>>>& InputQueue()
+   {
+      return fInputQueue;
+   }
    std::shared_ptr<ThreadsafeQueue<std::shared_ptr<const TBadFragment>>>& BadInputQueue() { return fBadInputQueue; }
-   std::shared_ptr<ThreadsafeQueue<std::shared_ptr<TEpicsFrag>>>&      ScalerInputQueue() { return fScalerInputQueue; }
-   std::shared_ptr<ThreadsafeQueue<std::shared_ptr<const TFragment>>>& OutputQueue() { return fOutputQueue; }
+   std::shared_ptr<ThreadsafeQueue<std::shared_ptr<TEpicsFrag>>>&         ScalerInputQueue() { return fScalerInputQueue; }
+   std::shared_ptr<ThreadsafeQueue<std::shared_ptr<const TFragment>>>&    OutputQueue() { return fOutputQueue; }
 #endif
 
    void ClearQueue() override;
@@ -54,7 +57,7 @@ protected:
    bool Iteration() override;
 
 private:
-   TFragWriteLoop(std::string name, std::string fOutputFilename);
+   TFragWriteLoop(std::string name, const std::string& fOutputFilename);
 #ifndef __CINT__
    void WriteEvent(const std::shared_ptr<const TFragment>& event);
    void WriteBadEvent(const std::shared_ptr<const TBadFragment>& event);
@@ -72,10 +75,10 @@ private:
    TEpicsFrag*   fScalerAddress;
 
 #ifndef __CINT__
-   std::shared_ptr<ThreadsafeQueue<std::shared_ptr<const TFragment>>> fInputQueue;
+   std::shared_ptr<ThreadsafeQueue<std::shared_ptr<const TFragment>>>    fInputQueue;
    std::shared_ptr<ThreadsafeQueue<std::shared_ptr<const TBadFragment>>> fBadInputQueue;
-   std::shared_ptr<ThreadsafeQueue<std::shared_ptr<TEpicsFrag>>>      fScalerInputQueue;
-   std::shared_ptr<ThreadsafeQueue<std::shared_ptr<const TFragment>>> fOutputQueue;
+   std::shared_ptr<ThreadsafeQueue<std::shared_ptr<TEpicsFrag>>>         fScalerInputQueue;
+   std::shared_ptr<ThreadsafeQueue<std::shared_ptr<const TFragment>>>    fOutputQueue;
 #endif
 
    ClassDefOverride(TFragWriteLoop, 0);

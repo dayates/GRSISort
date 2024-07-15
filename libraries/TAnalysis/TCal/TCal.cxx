@@ -1,9 +1,5 @@
 #include "TCal.h"
 
-/// \cond CLASSIMP
-ClassImp(TCal)
-/// \endcond
-
 TCal::TCal()
 {
    /// Default constructor
@@ -73,15 +69,15 @@ void TCal::WriteToAllChannels(const std::string& mnemonic)
 {
    /// Writes this calibration to all channels in the current TChannel Map
    std::unordered_map<unsigned int, TChannel*>::iterator mapIt;
-   std::unordered_map<unsigned int, TChannel*>* chanMap = TChannel::GetChannelMap();
-   TChannel* origChan = GetChannel();
+   std::unordered_map<unsigned int, TChannel*>*          chanMap  = TChannel::GetChannelMap();
+   TChannel*                                             origChan = GetChannel();
    for(mapIt = chanMap->begin(); mapIt != chanMap->end(); mapIt++) {
       if(mnemonic.empty() || (strncmp(mapIt->second->GetName(), mnemonic.c_str(), mnemonic.size()) == 0)) {
          SetChannel(mapIt->second);
          WriteToChannel();
       }
    }
-   printf("\n");
+   std::cout << std::endl;
    if(origChan != nullptr) {
       SetChannel(origChan);
    }
@@ -112,7 +108,7 @@ Double_t TCal::GetParameter(size_t parameter) const
       Error("GetParameter", "Function have not been fitted yet");
       return 0;
    }
-   return GetFitFunction()->GetParameter(parameter); // Root does all of the checking for us.
+   return GetFitFunction()->GetParameter(parameter);   // Root does all of the checking for us.
 }
 
 Bool_t TCal::SetChannel(UInt_t chanNum)
@@ -131,8 +127,8 @@ TChannel* TCal::GetChannel() const
 {
    /// Gets the channel being pointed to by the TCal. Returns 0 if no channel
    /// is set.
-   return static_cast<TChannel*>(fChan.GetObject()); // Gets the object pointed at by the TRef and casts it to a
-                                                     // TChannel
+   return static_cast<TChannel*>(fChan.GetObject());   // Gets the object pointed at by the TRef and casts it to a
+                                                       // TChannel
 }
 
 void TCal::SetHist(TH1* hist)
@@ -155,25 +151,26 @@ void TCal::Print(Option_t*) const
 {
    /// Prints calibration information
    if(GetChannel() != nullptr) {
-      printf("Channel Number: %u\n", GetChannel()->GetNumber());
+      std::cout << "Channel Number: " << GetChannel()->GetNumber() << std::endl;
    } else {
-      printf("Channel Number: NOT SET\n");
    }
 
    if(fFitFunc != nullptr) {
-      printf("\n*******************************\n");
-      printf(" Fit:\n");
+      std::cout << std::endl
+                << "*******************************" << std::endl;
+      std::cout << " Fit:" << std::endl;
       fFitFunc->Print();
-      printf("\n*******************************\n");
+      std::cout << std::endl
+                << "*******************************" << std::endl;
    } else {
-      printf("Parameters: FIT NOT SET\n");
+      std::cout << "Parameters: FIT NOT SET" << std::endl;
    }
 
-   printf("Nucleus: ");
+   std::cout << "Nucleus: ";
    if(GetNucleus() != nullptr) {
-      printf("%s\n", GetNucleus()->GetName());
+      std::cout << GetNucleus()->GetName() << std::endl;
    } else {
-      printf("NOT SET\n");
+      std::cout << "NOT SET" << std::endl;
    }
 }
 

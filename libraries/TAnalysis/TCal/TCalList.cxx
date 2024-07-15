@@ -3,10 +3,6 @@
 
 #include <iostream>
 
-/// \cond CLASSIMP
-ClassImp(TCalList)
-/// \endcond
-
 TCalList::TCalList()
    : TNamed()
 {
@@ -63,9 +59,9 @@ bool TCalList::SetPointIndex(const UInt_t& old_idx, const UInt_t& new_idx)
 void TCalList::Print(Option_t*) const
 {
    int idx = 0;
-   std::cout<<GetName()<<"   "<<GetTitle()<<std::endl;
+   std::cout << GetName() << "   " << GetTitle() << std::endl;
    for(auto it : fCalList) {
-      std::cout<<idx++<<"    "<<it.first<<std::endl;
+      std::cout << idx++ << "    " << it.first << std::endl;
       it.second.Print();
    }
 }

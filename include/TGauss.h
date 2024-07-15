@@ -30,25 +30,26 @@
 class TGauss : public TSinglePeak {
 public:
    // ctors and dtors
-   ~TGauss() override {};
-   TGauss();
-   TGauss(Double_t centroid, Double_t relativeLimit = -1.);
+   ~TGauss() override = default;
+   TGauss()           = default;
+   explicit TGauss(Double_t centroid, Double_t relativeLimit = -1.);
 
    void InitParNames() override;
-   void InitializeParameters(TH1* hist) override;
+   void InitializeParameters(TH1* hist, const double& rangeLow, const double& rangeHigh) override;
+
+   void Centroid(const Double_t& centroid) override;
 
    Double_t Centroid() const override;
    Double_t CentroidErr() const override;
-   Double_t Width() const override { return fTotalFunction->GetParameter("sigma"); }
-
-   void Print(Option_t *opt = "") const override;
+   Double_t Width() const override { return Sigma(); }
+   Double_t Sigma() const override { return GetFitFunction()->GetParameter("sigma"); }
 
 protected:
-   Double_t PeakFunction(Double_t *dim, Double_t *par) override;
+   Double_t PeakFunction(Double_t* dim, Double_t* par) override;
 
 public:
    /// \cond CLASSIMP
-   ClassDefOverride(TGauss, 1);
+   ClassDefOverride(TGauss, 2);
    /// \endcond
 };
 /*! @} */

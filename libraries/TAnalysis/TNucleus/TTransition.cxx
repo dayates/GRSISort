@@ -1,85 +1,80 @@
 #include "TTransition.h"
 
-/// \cond CLASSIMP
-ClassImp(TTransition)
-/// \endcond
+#include <iostream>
 
 TTransition::TTransition()
 {
-	Clear();
+   Clear();
 }
 
-TTransition::~TTransition()
-{
-	// empty
-}
+TTransition::~TTransition() = default;
 
 void TTransition::Clear(Option_t*)
 {
-	fEnergy         = 0;
-	fEngUncertainty = 0;
-	fIntensity      = 0;
-	fIntUncertainty = 0;
+   fEnergy         = 0;
+   fEngUncertainty = 0;
+   fIntensity      = 0;
+   fIntUncertainty = 0;
 }
 
 void TTransition::Print(Option_t*) const
 {
 
-	if(!std::isnan(fEngUncertainty)) {
-		printf("Energy:    %.02f +/- %.02f", fEnergy, fEngUncertainty);
-	} else {
-		printf("Energy:    %.02f ", fEnergy);
-	}
-	if(!std::isnan(fIntensity)) {
-		if(!std::isnan(fIntUncertainty)) {
-			printf("\tIntensity: %.02f +/- %.02f\n", fIntensity, fIntUncertainty);
-		} else {
-			printf("\tIntensity: %.02f \n", fEnergy);
-		}
-	} else {
-		printf("\n");
-	}
-
-	// printf("**************************\n");
+   if(!std::isnan(fEngUncertainty)) {
+      std::cout << "Energy:    " << fEnergy << " +/- " << fEngUncertainty << std::endl;
+   } else {
+      std::cout << "Energy:    " << fEnergy << std::endl;
+   }
+   if(!std::isnan(fIntensity)) {
+      if(!std::isnan(fIntUncertainty)) {
+         std::cout << "\tIntensity: " << fIntensity << " +/- " << fIntUncertainty << std::endl;
+      } else {
+         std::cout << "\tIntensity: " << fEnergy << std::endl;
+      }
+   } else {
+      std::cout << std::endl;
+   }
 }
 
-std::string TTransition::PrintToString()
+std::string TTransition::PrintToString() const
 {
-	std::string toString;
-	toString.append(Form("%f\t", fEnergy));
-	toString.append(Form("%f\t", fEngUncertainty));
-	toString.append(Form("%f\t", fIntensity));
-	toString.append(Form("%f\t", fIntUncertainty));
+   std::string toString;
+   toString.append(Form("%f\t", fEnergy));
+   toString.append(Form("%f\t", fEngUncertainty));
+   toString.append(Form("%f\t", fIntensity));
+   toString.append(Form("%f\t", fIntUncertainty));
 
-	return toString;
-}
-
-int TTransition::CompareIntensity(const TObject* obj) const
-{
-	if(fIntensity > static_cast<const TTransition*>(obj)->fIntensity) {
-		return -1;
-	}
-	if(fIntensity == static_cast<const TTransition*>(obj)->fIntensity) {
-		return 0;
-	}
-	return 1;
-
-	return -9;
+   return toString;
 }
 
 int TTransition::Compare(const TObject* obj) const
 {
+   if(fCompareIntensity) {
+      return CompareIntensity(obj);
+   }
+   return CompareEnergy(obj);
+}
 
-	return CompareIntensity(obj);
+int TTransition::CompareIntensity(const TObject* obj) const
+{
+   /// Compares the intensities of the TTransitions
+   if(fIntensity > static_cast<const TTransition*>(obj)->fIntensity) {
+      return -1;
+   }
+   if(fIntensity == static_cast<const TTransition*>(obj)->fIntensity) {
+      return 0;
+   }
+   return 1;
+}
 
-	// Compares the intensities of the TTransitions and returns
-	if(fEnergy > static_cast<const TTransition*>(obj)->fEnergy) {
-		return -1;
-	}
-	if(fEnergy == static_cast<const TTransition*>(obj)->fEnergy) {
-		return 0;
-	}
-	return 1;
-
-	return -9;
+int TTransition::CompareEnergy(const TObject* obj) const
+{
+   /// Compares the energies of the TTransitions
+   if(fEnergy < static_cast<const TTransition*>(obj)->fEnergy) {
+      return -1;
+   }
+   if(fEnergy == static_cast<const TTransition*>(obj)->fEnergy) {
+      return 0;
+   }
+   return 1;
 }

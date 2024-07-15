@@ -2,10 +2,6 @@
 
 #include <iostream>
 
-/// \cond CLASSIMP
-ClassImp(TCalPoint)
-/// \endcond
-
 TCalPoint::TCalPoint()
 {
    Clear();
@@ -65,8 +61,8 @@ void TCalPoint::SetArea(const Double_t& area, const Double_t& darea)
 
 void TCalPoint::Print(Option_t*) const
 {
-   std::cout<<"Centroid: "<<fCentroid<<" +/- "<<fCentroidErr<<std::endl;
-   std::cout<<"    Area: "<<fArea<<" +/- "<<fAreaErr<<std::endl;
+   std::cout << "Centroid: " << fCentroid << " +/- " << fCentroidErr << std::endl;
+   std::cout << "    Area: " << fArea << " +/- " << fAreaErr << std::endl;
 }
 
 void TCalPoint::Clear(Option_t*)

@@ -5,29 +5,27 @@
 #include "TChannel.h"
 #include "TSortingDiagnostics.h"
 
-TUnpackedEvent::TUnpackedEvent()
-{
-}
+TUnpackedEvent::TUnpackedEvent() = default;
 
 TUnpackedEvent::~TUnpackedEvent() = default;
 
 void TUnpackedEvent::Build()
 {
    for(const auto& frag : fFragments) {
-      TChannel* channel = TChannel::GetChannel(frag->GetAddress());
+      TChannel* channel = TChannel::GetChannel(frag->GetAddress(), true);
       if(channel == nullptr) {
-         //std::cout<<"Failed to find channel for address "<<frag->GetAddress()<<std::endl;
-			//TODO: add this to Diagnostics
+         // add to diagnostics, one time printing of error message is already taken care of by TChannel::GetChannel
+         TSortingDiagnostics::Get()->MissingChannel(frag->GetAddress());
          continue;
       }
 
       TClass* detClass = channel->GetClassType();
       if(detClass == nullptr) {
-			TSortingDiagnostics::Get()->AddDetectorClass(channel);
+         TSortingDiagnostics::Get()->AddDetectorClass(channel);
          continue;
       }
 
-		GetDetector(detClass, true)->AddFragment(frag, channel);
+      GetDetector(detClass, true)->AddFragment(frag, channel);
    }
 
    BuildHits();
@@ -66,3 +64,19 @@ std::shared_ptr<TDetector> TUnpackedEvent::GetDetector(TClass* cls, bool make_if
    }
    return nullptr;
 }
+
+#if __GNUC__ > 5
+std::ostringstream TUnpackedEvent::Print()
+{
+   std::ostringstream str;
+   str << fDetectors.size() << " detector types:" << std::endl;
+   for(const auto& det : fDetectors) {
+      str << "detector type " << det->ClassName() << std::endl;
+      for(int i = 0; i < det->GetMultiplicity(); ++i) {
+         auto hit = det->GetHit(i);
+         str << hit << " " << hex(hit->GetAddress(), 4) << " " << std::setw(16) << hit->GetTimeStamp() << " " << std::setw(16) << static_cast<int>(hit->Charge()) << " " << std::setw(16) << hit->GetEnergy() << std::endl;
+      }
+   }
+   return str;
+}
+#endif

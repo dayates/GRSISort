@@ -1,5 +1,5 @@
-#ifndef _TTERMINALLOOP_H_
-#define _TTERMINALLOOP_H_
+#ifndef TTERMINALLOOP_H
+#define TTERMINALLOOP_H
 
 /** \addtogroup Loops
  *  @{
@@ -26,7 +26,7 @@ public:
       }
 
       StoppableThread* thread = StoppableThread::Get(name);
-      if(!thread) {
+      if(thread == nullptr) {
          thread = new TTerminalLoop(name);
       }
 
@@ -36,7 +36,10 @@ public:
    ~TTerminalLoop() override = default;
 
 #ifndef __CINT__
-   std::shared_ptr<ThreadsafeQueue<std::shared_ptr<T>>>& InputQueue() { return fInputQueue; }
+   std::shared_ptr<ThreadsafeQueue<std::shared_ptr<T>>>& InputQueue()
+   {
+      return fInputQueue;
+   }
 
    void ClearQueue() override
    {
@@ -47,7 +50,10 @@ public:
    }
 #endif
 
-   size_t GetItemsPopped() override { return 0; }
+   size_t GetItemsPopped() override
+   {
+      return 0;
+   }
    size_t GetItemsPushed() override { return 0; }
    size_t GetItemsCurrent() override { return 0; }
    size_t GetRate() override { return 0; }
@@ -61,18 +67,18 @@ protected:
 
       if(event) {
          return true;
-      } else if(fInputQueue->IsFinished()) {
-         return false;
-      } else {
-         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-         return true;
       }
+      if(fInputQueue->IsFinished()) {
+         return false;
+      }
+      std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+      return true;
    }
 #endif
 
 private:
-   TTerminalLoop(std::string name)
-      : StoppableThread(name), fInputQueue(std::make_shared<ThreadsafeQueue<std::shared_ptr<T>>>())
+   explicit TTerminalLoop(std::string name)
+      : StoppableThread(std::move(name)), fInputQueue(std::make_shared<ThreadsafeQueue<std::shared_ptr<T>>>())
    {
    }
 

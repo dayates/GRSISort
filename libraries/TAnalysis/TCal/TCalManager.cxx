@@ -2,13 +2,9 @@
 
 #include <stdexcept>
 
-/// \cond CLASSIMP
-ClassImp(TCalManager)
-/// \endcond
-
 TCalManager::TCalManager()
 {
-   fClass = nullptr; // fClass will point to a TClass which is made persistant through a root session within gROOT.
+   fClass = nullptr;   // fClass will point to a TClass which is made persistant through a root session within gROOT.
    // So we don't need to worry about allocating it.
 }
 
@@ -31,7 +27,7 @@ TCalManager::~TCalManager()
 
 void TCalManager::RemoveCal(UInt_t channum, Option_t*)
 {
-   if(fCalMap.count(channum) == 1) { // if this cal exists
+   if(fCalMap.count(channum) == 1) {   // if this cal exists
       TCal* cal = GetCal(channum);
       delete cal;
       fCalMap.erase(channum);
@@ -48,7 +44,7 @@ void TCalManager::SetClass(const TClass* cl)
 {
    /// Sets the Derived class of the TCal being held in the TCalManager
    if(fClass != nullptr) {
-      printf("TCalManager type already set to %s\n", fClass->ClassName());
+      std::cout << "TCalManager type already set to " << fClass->ClassName() << std::endl;
       return;
    }
 
@@ -69,7 +65,7 @@ void TCalManager::SetClass(const TClass* cl)
       Error("SetClass", "%s must inherit from TObject as the left most base class.", className);
       return;
    }
-   printf("Changing TCalManager to type: %s\n", className);
+   std::cout << "Changing TCalManager to type: " << className << std::endl;
    Int_t nch  = strlen(className) + 2;
    auto* name = new char[nch];
    snprintf(name, nch, "%ss", className);
@@ -121,11 +117,11 @@ Bool_t TCalManager::AddToManager(TCal* cal, UInt_t chanNum, Option_t* opt)
 
    if((cal->GetChannel()) == nullptr) {
       if(!(cal->SetChannel(chanNum))) {
-         return false; // TCal does the Error for us.
+         return false;   // TCal does the Error for us.
       }
    }
 
-   if(fCalMap.count(cal->GetChannel()->GetNumber()) == 1) { // if this cal already exists
+   if(fCalMap.count(cal->GetChannel()->GetNumber()) == 1) {   // if this cal already exists
       if(strcmp(opt, "overwrite") == 0) {
          TCal* oldCal = GetCal(chanNum);
          // delete the old calibration for this channel number
@@ -145,7 +141,8 @@ Bool_t TCalManager::AddToManager(TCal* cal, UInt_t chanNum, Option_t* opt)
    // This has the effect of making it persistent as far as the ROOT streamer
    // facility is concerned. All of the other "pointer members" of the TCal
    // Get Deep copied into the TCal Manager.
-   printf("newCal: %p, cal: %p\n", static_cast<void*>(newCal->GetChannel()), static_cast<void*>(cal->GetChannel()));
+   std::cout << "newCal: " << newCal->GetChannel() << ", cal: " << cal->GetChannel() << std::endl;
+   ;
    fCalMap.insert(std::make_pair(chanNum, newCal));
 
    return true;
@@ -179,7 +176,7 @@ void TCalManager::Clear(Option_t*)
 void TCalManager::Print(Option_t*) const
 {
    if(fClass != nullptr) {
-      printf("Type: %s\n", fClass->GetName());
+      std::cout << "Type: " << fClass->GetName() << std::endl;
    }
-   std::cout<<"Size: "<<fCalMap.size()<<std::endl; // Printing this way due to size_type return
+   std::cout << "Size: " << fCalMap.size() << std::endl;   // Printing this way due to size_type return
 }

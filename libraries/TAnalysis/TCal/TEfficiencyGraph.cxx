@@ -3,10 +3,6 @@
 #include <iostream>
 #include "Globals.h"
 
-/// \cond CLASSIMP
-ClassImp(TEfficiencyGraph)
-/// \endcond
-
 TEfficiencyGraph::TEfficiencyGraph()
    : TCalGraph(), fIsAbsolute(false)
 {
@@ -48,11 +44,11 @@ void TEfficiencyGraph::BuildGraph()
 
       SetPoint(point_to_add, src_energy, meas_area / src_intensity);
       SetPointError(point_to_add, src_energy_err,
-                    meas_area / src_intensity * TMath::Sqrt(TMath::Power(meas_area_err / meas_area, 2.) +
-                                                            TMath::Power(src_intensity_err / src_intensity, 2.0)));
+                    meas_area / src_intensity * TMath::Sqrt(TMath::Power(meas_area_err / meas_area, 2.) + TMath::Power(src_intensity_err / src_intensity, 2.0)));
    }
 }
 
+#if ROOT_VERSION_CODE < ROOT_VERSION(6, 26, 0)
 void TEfficiencyGraph::Scale(const Double_t& scale)
 {
    for(auto& it : fCompareMap) {
@@ -64,3 +60,4 @@ void TEfficiencyGraph::Scale(const Double_t& scale)
       GetEY()[i] *= scale;
    }
 }
+#endif

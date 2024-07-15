@@ -148,13 +148,13 @@ enum ERootCanvasCommands {
 
 static const char* gOpenTypes[] = {"ROOT files", "*.root", "All files", "*", nullptr, nullptr};
 
-static const char* gSaveAsTypes[] = {"PDF",    "*.pdf", "PostScript",  "*.ps",      "Encapsulated PostScript",
-                                     "*.eps",  "SVG",   "*.svg",       "TeX",       "*.tex",
-                                     "GIF",    "*.gif", "ROOT macros", "*.C",       "ROOT files",
-                                     "*.root", "XML",   "*.xml",       "PNG",       "*.png",
-                                     "XPM",    "*.xpm", "JPEG",        "*.jpg",     "TIFF",
-                                     "*.tiff", "XCF",   "*.xcf",       "All files", "*",
-                                     nullptr,  nullptr};
+static const char* gSaveAsTypes[] = {"PDF", "*.pdf", "PostScript", "*.ps", "Encapsulated PostScript",
+                                     "*.eps", "SVG", "*.svg", "TeX", "*.tex",
+                                     "GIF", "*.gif", "ROOT macros", "*.C", "ROOT files",
+                                     "*.root", "XML", "*.xml", "PNG", "*.png",
+                                     "XPM", "*.xpm", "JPEG", "*.jpg", "TIFF",
+                                     "*.tiff", "XCF", "*.xcf", "All files", "*",
+                                     nullptr, nullptr};
 
 static ToolBarData_t gToolBarData[] = {
    // { filename,      tooltip,            staydown,  id,              button}
@@ -189,20 +189,20 @@ static ToolBarData_t gToolBarData1[] = {{"pointer.xpm", "Modify", kFALSE, kToolM
                                         {"cut.xpm", "Graphical Cut", kFALSE, kToolCutG, nullptr},
                                         {nullptr, nullptr, kFALSE, 0, nullptr}};
 
-//////////////////////////////////////////////////////////////////////////
-//                                                                      //
-// GRootContainer                                                       //
-//                                                                      //
-// Utility class used by GRootCanvas. The GRootContainer is the frame   //
-// embedded in the TGCanvas widget. The ROOT graphics goes into this    //
-// frame. This class is used to enable input events on this graphics    //
-// frame and forward the events to the GRootCanvas handlers.            //
-//                                                                      //
-//////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////
+///
+/// \class GRootContainer
+///
+/// Utility class used by GRootCanvas. The GRootContainer is the frame
+/// embedded in the TGCanvas widget. The ROOT graphics goes into this
+/// frame. This class is used to enable input events on this graphics
+/// frame and forward the events to the GRootCanvas handlers.
+///
+/////////////////////////////////////////////////////////////////////////
 
 class GRootContainer : public TGCompositeFrame {
 private:
-   GRootCanvas* fCanvas; // pointer back to canvas imp
+   GRootCanvas* fCanvas;   // pointer back to canvas imp
 public:
    GRootContainer(GRootCanvas* c, Window_t id, const TGWindow* p);
 
@@ -217,8 +217,8 @@ public:
    Bool_t HandleMotion(Event_t* ev) override { return fCanvas->HandleContainerMotion(ev); }
    Bool_t HandleExpose(Event_t* ev) override { return fCanvas->HandleContainerExpose(ev); }
    Bool_t HandleCrossing(Event_t* ev) override { return fCanvas->HandleContainerCrossing(ev); }
-   void SavePrimitive(std::ostream& out, Option_t* = "") override;
-   void SetEditable(Bool_t) override {}
+   void   SavePrimitive(std::ostream& out, Option_t* = "") override;
+   void   SetEditable(Bool_t) override {}
 };
 
 //______________________________________________________________________________
@@ -266,10 +266,8 @@ Bool_t GRootContainer::HandleButton(Event_t* event)
    return fCanvas->HandleContainerButton(event);
 }
 
-ClassImp(GRootCanvas)
-
-   //______________________________________________________________________________
-   GRootCanvas::GRootCanvas(GCanvas* c, const char* name, UInt_t width, UInt_t height)
+//______________________________________________________________________________
+GRootCanvas::GRootCanvas(GCanvas* c, const char* name, UInt_t width, UInt_t height)
    : TGMainFrame(gClient->GetRoot(), width, height), TCanvasImp(c)
 {
    /// Create a basic ROOT canvas.
@@ -301,7 +299,7 @@ void GRootCanvas::CreateCanvas(const char* name)
    /// Create the actual canvas.
 
    fButton   = 0;
-   fAutoFit  = kTRUE; // check also menu entry
+   fAutoFit  = kTRUE;   // check also menu entry
    fEditor   = nullptr;
    fEmbedded = kFALSE;
 
@@ -520,7 +518,7 @@ void GRootCanvas::CreateCanvas(const char* name)
             const Int_t glCtx = gGLManager->CreateGLContext(fCanvasID);
             if(glCtx != -1) {
                fCanvas->SetSupportGL(kTRUE);
-               fCanvas->SetGLDevice(glCtx); // Now, fCanvas is responsible for context deletion!
+               fCanvas->SetGLDevice(glCtx);   // Now, fCanvas is responsible for context deletion!
             } else {
                Error("CreateCanvas", "GL context creation failed.");
             }
@@ -619,17 +617,6 @@ GRootCanvas::~GRootCanvas()
       delete fToolBarLayout;
       delete fHorizontal1;
       delete fHorizontal1Layout;
-      // printf("I AM HERE!!!!\n"); fflush(stdout);
-      // printf("fMenuBar = 0x%08x\n",fMenuBar); fflush(stdout);
-      // printf("fMenuBar->MustCleanup()) = %i\n",fMenuBar->MustCleanup()); fflush(stdout);
-      // fMenuBar->Print();
-      // printf("I AM HERE!!!!\n"); fflush(stdout);
-      //
-      //  This is most certainly wrong, but i can not get the TBrowser to not seg fault on close with out it.  pcb.
-      //
-      // delete fMenuBar;
-      //
-      // printf("I AM HERE!!!!\n"); fflush(stdout);
       delete fMenuBarLayout;
       delete fMenuBarItemLayout;
       delete fMenuBarHelpLayout;
@@ -686,10 +673,10 @@ void GRootCanvas::ReallyDelete()
               "EventInfo(Int_t, Int_t, Int_t, TObject*)");
 
    TVirtualPad* savepad = gPad;
-   gPad                 = nullptr; // hide gPad from CINT
+   gPad                 = nullptr;   // hide gPad from CINT
    gInterpreter->DeleteGlobal(fCanvas);
-   gPad = savepad; // restore gPad for ROOT
-   delete fCanvas; // will in turn delete this object
+   gPad = savepad;   // restore gPad for ROOT
+   delete fCanvas;   // will in turn delete this object
 }
 
 //______________________________________________________________________________
@@ -1098,21 +1085,21 @@ Bool_t GRootCanvas::ProcessMessage(Long_t msg, Long_t parm1, Long_t)
             if(!rootx.IsNull()) {
                rootx += "/bin";
             }
-#endif // ROOTBINDIR
+#endif   // ROOTBINDIR
             rootx += "/root -a &";
             gSystem->Exec(rootx);
-#else // R__UNIX
+#else   // R__UNIX
 #ifdef WIN32
             new TWin32SplashThread(kTRUE);
 #else
 
-            char str[32];
-            sprintf(str, "About ROOT %s...", gROOT->GetVersion());
-            hd = new GRootHelpDialog(this, str, 600, 400);
+            std::ostringstream str;
+            str << "About ROOT " << gROOT->GetVersion() << "...";
+            hd = new GRootHelpDialog(this, str.str(), 600, 400);
             hd->SetText(gHelpAbout);
             hd->Popup();
-#endif // WIN32
-#endif // R__UNIX
+#endif   // WIN32
+#endif   // R__UNIX
          } break;
          case kHelpOnCanvas:
             hd = new TRootHelpDialog(this, "Help on Canvas...", 600, 400);
@@ -1176,11 +1163,11 @@ void GRootCanvas::SetCanvasSize(UInt_t w, UInt_t h)
    fAutoFit = kFALSE;
    fOptionMenu->UnCheckEntry(kOptionAutoResize);
    int opt = fCanvasContainer->GetOptions();
-   opt |= kFixedSize; // turn on fixed size mode
+   opt |= kFixedSize;   // turn on fixed size mode
    fCanvasContainer->ChangeOptions(opt);
    fCanvasContainer->SetWidth(w);
    fCanvasContainer->SetHeight(h);
-   Layout(); // force layout (will update container to given size)
+   Layout();   // force layout (will update container to given size)
    fCanvas->Resize();
    fCanvas->Update();
 }
@@ -1234,9 +1221,9 @@ void GRootCanvas::FitCanvas()
    if(!fAutoFit) {
       int opt  = fCanvasContainer->GetOptions();
       int oopt = opt;
-      opt &= ~kFixedSize; // turn off fixed size mode
+      opt &= ~kFixedSize;   // turn off fixed size mode
       fCanvasContainer->ChangeOptions(opt);
-      Layout(); // force layout
+      Layout();   // force layout
       fCanvas->Resize();
       fCanvas->Update();
       fCanvasContainer->ChangeOptions(oopt);
@@ -1403,14 +1390,12 @@ void GRootCanvas::ShowEditor(Bool_t show)
       const TGMainFrame* main = static_cast<const TGMainFrame*>(fParent->GetMainFrame());
       fMainFrame->HideFrame(fEditorFrame);
       if((main != nullptr) && main->InheritsFrom("TRootBrowser")) {
-         printf("I am here GRootCanvas 1469.\n");
          TRootBrowser* browser = const_cast<TRootBrowser*>(static_cast<const TRootBrowser*>(main));
          if(!fEmbedded) {
             browser->GetTabRight()->Connect("Selected(Int_t)", "GRootCanvas", this, "Activated(Int_t)");
          }
          fEmbedded = kTRUE;
          if(show && ((fEditor == nullptr) || !static_cast<TGedEditor*>(fEditor)->IsMapped())) {
-            printf("I am here GRootCanvas 1476.\n");
             if(browser->GetTabLeft()->GetTabTab("Pad Editor") == nullptr) {
                browser->StartEmbedding(TRootBrowser::kLeft);
                if(fEditor == nullptr) {
@@ -1426,8 +1411,6 @@ void GRootCanvas::ShowEditor(Bool_t show)
                   static_cast<TGedEditor*>(fEditor)->SetCanvas(fCanvas);
                   static_cast<TGedEditor*>(fEditor)->SetModel(fCanvas, fCanvas, kButton1Down);
                }
-            } else {
-               printf("I am here GRootCanvas 1494.\n");
             }
             fEditor = TVirtualPadEditor::GetPadEditor(kFALSE);
          }
@@ -1669,7 +1652,6 @@ Bool_t GRootCanvas::HandleContainerButton(Event_t* event)
          gSystem->ProcessEvents();
       }
       fButton = button;
-      // printf("Event_t::State = 0x%08x\n",event->fState);
       if(button == kButton1) {
          if((event->fState & kKeyShiftMask) != 0u) {
             (static_cast<GCanvas*>(fCanvas))->HandleInput(kButton1Shift, x, y);
@@ -1684,7 +1666,7 @@ Bool_t GRootCanvas::HandleContainerButton(Event_t* event)
       }
       if(button == kButton3) {
          (static_cast<GCanvas*>(fCanvas))->HandleInput(kButton3Down, x, y);
-         fButton = 0; // button up is consumed by TContextMenu
+         fButton = 0;   // button up is consumed by TContextMenu
       }
 
    } else if(event->fType == kButtonRelease) {
@@ -1775,18 +1757,16 @@ Bool_t GRootCanvas::HandleContainerKey(Event_t* event)
       char   str[2];
       gVirtualX->LookupString(event, str, sizeof(str), keysym);
 
-      if(str[0] == kESC) { // ESC sets the escape flag
+      if(str[0] == kESC) {   // ESC sets the escape flag
          gROOT->SetEscape();
          (static_cast<GCanvas*>(fCanvas))->HandleInput(kButton1Up, 0, 0);
          (static_cast<GCanvas*>(fCanvas))->HandleInput(kMouseMotion, 0, 0);
          gPad->Modified();
          return kTRUE;
       }
-      if(str[0] == 3) { // ctrl-c sets the interrupt flag
+      if(str[0] == 3) {   // ctrl-c sets the interrupt flag
          gROOT->SetInterrupt();
       }
-
-      // printf("HandleContainerKey has been called with a kGKeyPress.\n");
 
       // handle arrow keys
       if(keysym > 0x1011 && keysym < 0x1016) {
@@ -1804,20 +1784,16 @@ Bool_t GRootCanvas::HandleContainerKey(Event_t* event)
          // from auto-repeat on Windows (as it fires only successive keydown events)
          if((previous_keysym == keysym) && (previous_event == kGKeyPress)) {
             switch(keysym) {
-            case 0x1012: // left
-               // printf("LEFT\n");
+            case 0x1012:   // left
                //                  gVirtualX->Warp(--mx, my, wid); --tx;
                break;
-            case 0x1013: // up
-               // printf("UP\n");
+            case 0x1013:   // up
                //                  gVirtualX->Warp(mx, --my, wid); --ty;
                break;
-            case 0x1014: // right
-               // printf("RIGHT\n");
+            case 0x1014:   // right
                //                  gVirtualX->Warp(++mx, my, wid); ++tx;
                break;
-            case 0x1015: // down
-               // printf("DOWN\n");
+            case 0x1015:   // down
                //                  gVirtualX->Warp(mx, ++my, wid); ++ty;
                break;
             default: break;
@@ -1840,31 +1816,8 @@ Bool_t GRootCanvas::HandleContainerKey(Event_t* event)
          wid = gVirtualX->GetDefaultRootWindow();
          gVirtualX->QueryPointer(wid, dum1, dum2, mx, my, mx, my, mask);
 
-         // printf("GetCanvas() = 0x%08x\t%s\n",gPad->GetCanvas(),gPad->GetCanvas()->IsA()->GetName());
          GCanvas* gCanvas = static_cast<GCanvas*>(gPad->GetCanvas());
          gCanvas->HandleArrowKeyPress(event, &keysym);
-         /*
-                  switch (keysym) {
-                     case 0x1012: // left
-                        printf("LEFT\n");
-                        //gVirtualX->Warp(--mx, my, wid);
-                        break;
-                     case 0x1013: // up
-                        printf("UP\n");
-                        //gVirtualX->Warp(mx, --my, wid);
-                        break;
-                     case 0x1014: // right
-                        printf("RIGHT\n");
-                        //gVirtualX->Warp(++mx, my, wid);
-                        break;
-                     case 0x1015: // down
-                        printf("DOWN\n");
-                        //gVirtualX->Warp(mx, ++my, wid);
-                        break;
-                     default:
-                        break;
-                  }
-         */
          gVirtualX->TranslateCoordinates(gClient->GetDefaultRoot()->GetId(), fCanvasContainer->GetId(), mx, my, tx, ty,
                                          dum1);
          (static_cast<GCanvas*>(fCanvas))->HandleInput(static_cast<EEventType>(kArrowKeyRelease), tx, ty);
@@ -2062,11 +2015,10 @@ void GRootContainer::SavePrimitive(std::ostream& out, Option_t* /*= ""*/)
 {
    /// Save a canvas container as a C++ statement(s) on output stream out.
 
-   out<<std::endl<<"   // canvas container"<<std::endl;
-   out<<"   Int_t canvasID = gVirtualX->InitWindow((ULong_t)"<<GetParent()->GetParent()->GetName()<<"->GetId());"
-      <<std::endl;
-   out<<"   Window_t winC = gVirtualX->GetWindowID(canvasID);"<<std::endl;
-   out<<"   TGCompositeFrame *";
-   out<<GetName()<<" = new TGCompositeFrame(gClient,winC"
-      <<","<<GetParent()->GetName()<<");"<<std::endl;
+   out << std::endl
+       << "   // canvas container" << std::endl;
+   out << "   Int_t canvasID = gVirtualX->InitWindow((ULong_t)" << GetParent()->GetParent()->GetName() << "->GetId());" << std::endl;
+   out << "   Window_t winC = gVirtualX->GetWindowID(canvasID);" << std::endl;
+   out << "   TGCompositeFrame *";
+   out << GetName() << " = new TGCompositeFrame(gClient, winC, " << GetParent()->GetName() << ");" << std::endl;
 }

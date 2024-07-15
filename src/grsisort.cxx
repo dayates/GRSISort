@@ -6,11 +6,11 @@
 #include <stdexcept>
 #include <pwd.h>
 
-#include "TEnv.h"
 #include "TPluginManager.h"
 #include "TGRSIint.h"
 
 #include "GVersion.h"
+#include "Globals.h"
 #include "TThread.h"
 
 #ifdef __APPLE__
@@ -53,52 +53,40 @@ void atexitHandler()
    realTime -= hour * 3600;
    int min = static_cast<int>(realTime / 60);
    realTime -= min * 60;
-   std::cout<<DMAGENTA<<std::endl
-            <<"bye,bye\t"<<DCYAN<<getpwuid(getuid())->pw_name<<RESET_COLOR<<" after "<<hour<<":"
-            <<std::setfill('0')<<std::setw(2)<<min<<":"<<std::setprecision(3)<<std::fixed<<realTime
-            <<" h:m:s"<<std::endl;
+   std::cout << DMAGENTA << std::endl
+             << "bye,bye\t" << DCYAN << getpwuid(getuid())->pw_name << RESET_COLOR << " after " << hour << ":"
+             << std::setfill('0') << std::setw(2) << min << ":" << std::setprecision(3) << std::fixed << realTime
+             << " h:m:s" << std::endl;
 }
 
 int main(int argc, char** argv)
 {
    gStopwatch = new TStopwatch;
-	std::atexit(atexitHandler);
+   std::atexit(atexitHandler);
 
    try {
       TThread::Initialize();
       TObject::SetObjectStat(false);
 
-      // Find the grsisort environment variable so that we can read in .grsirc
       SetDisplay();
-      SetGRSIEnv();
+      grsi::SetGRSIEnv();
       SetGRSIPluginHandlers();
       TGRSIint* input = nullptr;
 
       // Create an instance of the grsi interpreter so that we can run root-like interpretive mode
       input = TGRSIint::instance(argc, argv);
-		input->SetReturnFromRun(true);
+      input->SetReturnFromRun(true);
       // Run the code!
       input->Run(true);
    } catch(grsi::exit_exception& e) {
-      std::cerr<<e.message<<std::endl;
+      std::cerr << e.message << std::endl;
       // Close files and clean up properly here
    } catch(std::runtime_error& e) {
-		std::cerr<<e.what()<<std::endl;
-		std::cout<<"Don't know how to handle this error, exiting "<<argv[0]<<"!"<<std::endl;
-	}
+      std::cerr << e.what() << std::endl;
+      std::cout << "Don't know how to handle this error, exiting " << argv[0] << "!" << std::endl;
+   }
 
    return 0;
-}
-
-void SetGRSIEnv()
-{
-   std::string grsi_path = getenv("GRSISYS"); // Finds the GRSISYS path to be used by other parts of the grsisort code
-   if(grsi_path.length() > 0) {
-      grsi_path += "/";
-   }
-   // Read in grsirc in the GRSISYS directory to set user defined options on grsisort startup
-   grsi_path += ".grsirc";
-   gEnv->ReadFile(grsi_path.c_str(), kEnvChange);
 }
 
 void SetGRSIPluginHandlers()
@@ -113,9 +101,10 @@ void SetGRSIPluginHandlers()
 
 static int ReadUtmp()
 {
-   FILE*       utmp;
-   struct stat file_stats;
-   size_t n_read, size;
+   FILE*       utmp = nullptr;
+   struct stat file_stats {};
+   size_t      n_read = 0;
+   size_t      size   = 0;
 
    gUtmpContents = nullptr;
 
@@ -140,7 +129,7 @@ static int ReadUtmp()
    n_read = fread(gUtmpContents, 1, size, utmp);
    if(ferror(utmp) == 0) {
       if(fclose(utmp) != EOF && n_read == size) {
-         return size / sizeof(STRUCT_UTMP);
+         return static_cast<int>(size / sizeof(STRUCT_UTMP));
       }
    } else {
       fclose(utmp);
@@ -168,42 +157,37 @@ static void SetDisplay()
    // Set DISPLAY environment variable.
 
    if(getenv("DISPLAY") == nullptr) {
-      char* tty = ttyname(0); // device user is logged in on
+      char* tty = ttyname(0);   // device user is logged in on
       if(tty != nullptr) {
-         tty += 5; // remove "/dev/"
+         tty += 5;   // remove "/dev/"
          STRUCT_UTMP* utmp_entry = SearchEntry(ReadUtmp(), tty);
          if(utmp_entry != nullptr) {
-				size_t length = sizeof(utmp_entry->ut_host);
-            auto* display = new char[length + 15];
-            auto* host    = new char[length + 1];
-            strncpy(host, utmp_entry->ut_host, length); // instead of using size of utmp_entry->ut_host to prevent warning from gcc 9.1
+            size_t      length = sizeof(utmp_entry->ut_host);
+            std::string display;
+            auto*       host = new char[length + 1];
+            strncpy(host, utmp_entry->ut_host, length);   // instead of using size of utmp_entry->ut_host to prevent warning from gcc 9.1
             host[sizeof(utmp_entry->ut_host)] = 0;
             if(host[0] != 0) {
+               display = host;
                if(strchr(host, ':') != nullptr) {
-                  sprintf(display, "DISPLAY=%s", host);
                   fprintf(stderr, "*** DISPLAY not set, setting it to %s\n", host);
                } else {
-                  sprintf(display, "DISPLAY=%s:0.0", host);
                   fprintf(stderr, "*** DISPLAY not set, setting it to %s:0.0\n", host);
+                  display += ":0.0";
                }
-               putenv(display);
+               setenv("DISPLAY", display.c_str(), 0);
 #ifndef UTMP_NO_ADDR
             } else if(utmp_entry->ut_addr != 0) {
-               struct hostent* he;
-               if((he = gethostbyaddr(reinterpret_cast<const char*>(&utmp_entry->ut_addr), sizeof(utmp_entry->ut_addr),
-                                      AF_INET)) != nullptr) {
-                  sprintf(display, "DISPLAY=%s:0.0", he->h_name);
+               struct hostent* he = gethostbyaddr(reinterpret_cast<const char*>(&utmp_entry->ut_addr), sizeof(utmp_entry->ut_addr), AF_INET);
+               if(he != nullptr) {
                   fprintf(stderr, "*** DISPLAY not set, setting it to %s:0.0\n", he->h_name);
-                  putenv(display);
-               } else {
-                  delete[] display; // if display is not used, we can delete it
+                  display = he->h_name;
+                  display += ":0.0";
+                  setenv("DISPLAY", display.c_str(), 0);
                }
 #endif
-            } else {
-               delete[] display; // if display is not used, we can delete it
             }
             delete[] host;
-            // display cannot be deleted otherwise the env var is deleted too
          }
          free(gUtmpContents);
       }

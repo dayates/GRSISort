@@ -5,14 +5,12 @@
 
 #include "TUnpackedEvent.h"
 
-ClassImp(TDetBuildingLoop)
-
 TDetBuildingLoop* TDetBuildingLoop::Get(std::string name)
 {
    if(name.length() == 0) {
       name = "unpack_loop";
    }
-   TDetBuildingLoop* loop = static_cast<TDetBuildingLoop*>(StoppableThread::Get(name));
+   auto* loop = static_cast<TDetBuildingLoop*>(StoppableThread::Get(name));
    if(loop == nullptr) {
       loop = new TDetBuildingLoop(name);
    }
@@ -20,7 +18,7 @@ TDetBuildingLoop* TDetBuildingLoop::Get(std::string name)
 }
 
 TDetBuildingLoop::TDetBuildingLoop(std::string name)
-   : StoppableThread(name),
+   : StoppableThread(std::move(name)),
      fInputQueue(std::make_shared<ThreadsafeQueue<std::vector<std::shared_ptr<const TFragment>>>>())
 {
 }
@@ -43,16 +41,13 @@ bool TDetBuildingLoop::Iteration()
          }
          return false;
       }
-      std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
       return true;
    }
    ++fItemsPopped;
 
    std::shared_ptr<TUnpackedEvent> outputEvent = std::make_shared<TUnpackedEvent>();
-   for(const auto& frag : frags) {
-      // passes ownership of all TFragments, no need to delete here
-      outputEvent->AddRawData(frag);
-   }
+   outputEvent->SetRawData(frags);
    outputEvent->Build();
    for(const auto& outQueue : fOutputQueues) {
       outQueue->Push(outputEvent);

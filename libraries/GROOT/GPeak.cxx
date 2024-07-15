@@ -1,17 +1,14 @@
+#include "GPeak.h"
 
-#include <GPeak.h>
-#include <TGraph.h>
-#include <TVirtualFitter.h>
-#include <TFitResult.h>
-#include <TFitResultPtr.h>
+#include "TGraph.h"
+#include "TVirtualFitter.h"
+#include "TFitResult.h"
+#include "TFitResultPtr.h"
 
 #include "Globals.h"
 #include "GRootFunctions.h"
+#include "TGRSIFunctions.h"
 #include "GCanvas.h"
-
-/// \cond CLASSIMP
-ClassImp(GPeak)
-/// \endcond
 
 GPeak* GPeak::fLastFit = nullptr;
 
@@ -107,7 +104,6 @@ GPeak::GPeak()
 
 GPeak::GPeak(const GPeak& peak) : TF1(peak)
 {
-
    SetParent(nullptr);
    // SetDirectory(0);
    fBGFit.SetParent(nullptr);
@@ -123,19 +119,6 @@ GPeak::~GPeak()
    //  delete background;
 }
 
-// void GPeak::Fcn(Int_t &npar,Double_t *gin,Double_T &f,Double_t *par,Int_t iflag) {
-// chisquared calculator
-//
-//  int i=0;
-//  double chisq = 0;
-//  double delta = 0;
-//  for(i=0;i<nbins;i++) {
-//    delta = (data[i] - GRootFunctions::PhotoPeakBG((x+i),par))/error[i];
-//    chisq += delta*delta;
-//  }
-//  f=chisq;
-//}
-
 void GPeak::InitNames()
 {
    TF1::SetParName(0, "Height");
@@ -143,22 +126,12 @@ void GPeak::InitNames()
    TF1::SetParName(2, "sigma");
    TF1::SetParName(3, "R");
    TF1::SetParName(4, "beta");
-   // TF1::SetParName(5,"step");
-   // TF1::SetParName(6,"A");
-   // TF1::SetParName(7,"B");
-   // TF1::SetParName(8,"C");
    TF1::SetParName(5, "step");
    TF1::SetParName(6, "bg_offset");
-   // TF1::SetParName(7,"bg_slope");
 }
 
 void GPeak::Copy(TObject& obj) const
 {
-   // printf("0x%08x\n",&obj);
-   // fflush(stdout);
-   // printf("%s\n",obj.GetName());
-   // fflush(stdout);
-
    TF1::Copy(obj);
    (static_cast<GPeak&>(obj)).init_flag = init_flag;
    (static_cast<GPeak&>(obj)).fArea     = fArea;
@@ -174,10 +147,9 @@ void GPeak::Copy(TObject& obj) const
 bool GPeak::InitParams(TH1* fithist)
 {
    if(fithist == nullptr) {
-      printf("No histogram is associated yet, no initial guesses made\n");
+      std::cout << "No histogram is associated yet, no initial guesses made" << std::endl;
       return false;
    }
-   // printf("%s called.\n",__PRETTY_FUNCTION__); fflush(stdout);
    // Makes initial guesses at parameters for the fit. Uses the histogram to
    Double_t xlow, xhigh;
    GetRange(xlow, xhigh);
@@ -231,21 +203,17 @@ bool GPeak::InitParams(TH1* fithist)
    // TF1::SetParLimits(5,step-step*.1,step+.1*step);
    TF1::SetParLimits(5, 0.0, step + step);
 
-   // double slope  = (yhigh-ylow)/(xhigh-xlow);
-   // double offset = yhigh-slope*xhigh;
    double offset = lowy;
    TF1::SetParLimits(6, offset - 0.5 * offset, offset + offset);
-   // TF1::SetParLimits(7,-2*slope,2*slope);
 
    // Make initial guesses
-   TF1::SetParameter(0, largesty);                // fithist->GetBinContent(bin));
-   TF1::SetParameter(1, largestx);                // GetParameter("centroid"));
-   TF1::SetParameter(2, (largestx * .01) / 2.35); // 2,(xhigh-xlow));     //2.0/binWidth); //
+   TF1::SetParameter(0, largesty);                  // fithist->GetBinContent(bin));
+   TF1::SetParameter(1, largestx);                  // GetParameter("centroid"));
+   TF1::SetParameter(2, (largestx * .01) / 2.35);   // 2,(xhigh-xlow));     //2.0/binWidth); //
    TF1::SetParameter(3, 5.);
    TF1::SetParameter(4, 1.);
    TF1::SetParameter(5, step);
    TF1::SetParameter(6, offset);
-   // TF1::SetParameter(7,slope);
 
    TF1::SetParError(0, 0.10 * largesty);
    TF1::SetParError(1, 0.25);
@@ -254,8 +222,6 @@ bool GPeak::InitParams(TH1* fithist)
    TF1::SetParError(4, 0.5);
    TF1::SetParError(5, 0.10 * step);
    TF1::SetParError(6, 0.10 * offset);
-
-   // TF1::Print();
 
    SetInitialized();
    return true;
@@ -267,77 +233,58 @@ Bool_t GPeak::Fit(TH1* fithist, Option_t* opt)
       return false;
    }
    TString options = opt;
+   options.ToLower();
    if(!IsInitialized()) {
       InitParams(fithist);
    }
    TVirtualFitter::SetMaxIterations(100000);
 
-   bool verbose = !options.Contains("Q");
-   bool noprint = options.Contains("no-print");
-   if(noprint) {
-      options.ReplaceAll("no-print", "");
-   }
+   bool quiet    = options.Contains("q");
+   bool verbose  = options.Contains("v");
+   bool retryFit = options.Contains("retryfit");
+   options.ReplaceAll("retryfit", "");
+   if(!verbose && !quiet) options.Append("q");
 
    if(fithist->GetSumw2()->fN != fithist->GetNbinsX() + 2) {
       fithist->Sumw2();
    }
 
-   TFitResultPtr fitres = fithist->Fit(this, Form("%sLRSM", options.Data()));
+   TFitResultPtr fitres = fithist->Fit(this, Form("%sLRS", options.Data()));
 
-   // fitres.Get()->Print();
-   printf("chi^2/NDF = %.02f\n", GetChisquare() / static_cast<double>(GetNDF()));
+   if(verbose) std::cout << "chi^2/NDF = " << GetChisquare() / static_cast<double>(GetNDF()) << std::endl;
 
    if(!fitres.Get()->IsValid()) {
-      printf(RED "fit has failed, trying refit... " RESET_COLOR);
-      // SetParameter(3,0.1);
-      // SetParameter(4,0.01);
-      // SetParameter(5,0.0);
+      if(!quiet) std::cout << RED << "fit has failed, trying refit... " << RESET_COLOR << std::endl;
       fithist->GetListOfFunctions()->Last()->Delete();
-      fitres = fithist->Fit(this, Form("%sLRSME", options.Data())); //,Form("%sRSM",options.Data()))
-      if(fitres.Get()->IsValid()) {
-         printf(DGREEN " refit passed!" RESET_COLOR "\n");
-      } else {
-         printf(DRED " refit also failed :( " RESET_COLOR "\n");
+      fitres = fithist->Fit(this, Form("%sLRSME", options.Data()));
+      if(!quiet) {
+         if(fitres.Get()->IsValid()) {
+            std::cout << DGREEN << " refit passed!" << RESET_COLOR << std::endl;
+         } else {
+            std::cout << DRED << " refit also failed :( " << RESET_COLOR << std::endl;
+         }
       }
    }
 
-   // if(fitres->ParError(2) != fitres->ParError(2)) { // checks if nan.
-   //  if(fitres->Parameter(3)<1) {
-   //    FixParameter(4,0);
-   //    FixParameter(3,1);
-   // printf("Beta may have broken the fit, retrying with R=0);
-   //    fithist->GetListOfFunctions()->Last()->Delete();
-   //    fitres = fithist->Fit(this,Form("%sRSM",options.Data()));
-   //  }
-   //}
+   // check parameter errors
+   if(!TGRSIFunctions::CheckParameterErrors(fitres, options.Data())) {
+      if(retryFit) {
+         // fit again with all parameters released
+         if(!quiet) std::cout << GREEN << "Re-fitting with released parameters (without any limits):" << RESET_COLOR << std::endl;
+         for(int i = 0; i < GetNpar(); ++i) {
+            ReleaseParameter(i);
+         }
+         fitres = fithist->Fit(this, Form("%sLRSM", options.Data()));
+      } else {
+         // re-try using minos instead of minuit
+         if(!quiet) std::cout << YELLOW << "Re-fitting with \"E\" option to get better error estimation using Minos technique." << RESET_COLOR << std::endl;
+         fitres = fithist->Fit(this, Form("%sLRSME", options.Data()));
+      }
+   }
+   TGRSIFunctions::CheckParameterErrors(fitres, options.Data());
 
-   // TF1::Print();
-
-   // Double_t binwidth = fithist->GetBinWidth(GetParameter("centroid"));
-   // Double_t width    = TF1::GetParameter("sigma");
    Double_t xlow, xhigh;
-   // Double_t int_low,int_high;
    TF1::GetRange(xlow, xhigh);
-   // int_low  = xlow - 5.*width;
-   // int_high = xhigh +5.*width;
-
-   // Make a function that does not include the background
-   // Intgrate the background.
-   // GPeak *tmppeak = new GPeak;
-   // Copy(*tmppeak);
-
-   // tmppeak->SetParameter("bg_offset",0.0);
-   // tmppeak->SetRange(int_low,int_high);//This will help get the true area of the gaussian 200 ~ infinity in a gaus
-   // tmppeak->SetName("tmppeak");
-
-   // fArea = (tmppeak->Integral(int_low,int_high))/binwidth;
-   //  TMatrixDSym CovMat = fitres->GetCovarianceMatrix();
-   //  CovMat(6,6) = 0.0;
-   //  CovMat(7,7) = 0.0;
-   //  CovMat(8,8) = 0.0;
-   //  CovMat(9,9) = 0.0;
-
-   //  fDArea = (tmppeak->IntegralError(int_low,int_high,tmppeak->GetParameters(),CovMat.GetMatrixArray()))/binwidth;
 
    double bgpars[5];
    bgpars[0] = TF1::GetParameters()[0];
@@ -345,10 +292,11 @@ Bool_t GPeak::Fit(TH1* fithist, Option_t* opt)
    bgpars[2] = TF1::GetParameters()[2];
    bgpars[3] = TF1::GetParameters()[5];
    bgpars[4] = TF1::GetParameters()[6];
-   // bgpars[5] = TF1::GetParameters()[7];
 
    fBGFit.SetParameters(bgpars);
-   // fithist->GetListOfFunctions()->Print();
+
+   fChi2 = GetChisquare();
+   fNdf  = GetNDF();
 
    fArea         = Integral(xlow, xhigh) / fithist->GetBinWidth(1);
    double bgArea = fBGFit.Integral(xlow, xhigh) / fithist->GetBinWidth(1);
@@ -358,18 +306,18 @@ Bool_t GPeak::Fit(TH1* fithist, Option_t* opt)
       std::swap(xlow, xhigh);
    }
    fSum = fithist->Integral(fithist->GetXaxis()->FindBin(xlow),
-                            fithist->GetXaxis()->FindBin(xhigh)); //* fithist->GetBinWidth(1);
-   printf("sum between markers: %02f\n", fSum);
+                            fithist->GetXaxis()->FindBin(xhigh));   //* fithist->GetBinWidth(1);
+   if(verbose) std::cout << "sum between markers: " << fSum << std::endl;
    fDSum = TMath::Sqrt(fSum);
    fSum -= bgArea;
-   printf("sum after subtraction: %02f\n", fSum);
+   if(verbose) std::cout << "sum after subtraction: " << fSum << std::endl;
 
    // Make a function that does not include the background
    // Intgrate the background.
    // TPeak* tmppeak = new TPeak(*this);
 
    Double_t range_low, range_high;
-   GetRange(range_low,range_high);
+   GetRange(range_low, range_high);
 
    GPeak* tmppeak = new GPeak;
    Copy(*tmppeak);
@@ -378,39 +326,26 @@ Bool_t GPeak::Fit(TH1* fithist, Option_t* opt)
    tmppeak->SetParameter("B", 0.0);
    tmppeak->SetParameter("C", 0.0);
    tmppeak->SetParameter("bg_offset", 0.0);
-   tmppeak->SetRange(range_low, range_high); // This will help get the true area of the gaussian 200 ~ infinity in a gaus
+   tmppeak->SetRange(range_low, range_high);   // This will help get the true area of the gaussian 200 ~ infinity in a gaus
    tmppeak->SetName("tmppeak");
 
    // This is where we will do integrals and stuff.
    TMatrixDSym CovMat = fitres->GetCovarianceMatrix();
-   CovMat(5, 5) = 0.0;
-   CovMat(6, 6) = 0.0;
-   fDArea = (tmppeak->IntegralError(xlow, xhigh, tmppeak->GetParameters(), CovMat.GetMatrixArray())) / fithist->GetBinWidth(1);
+   CovMat(5, 5)       = 0.0;
+   CovMat(6, 6)       = 0.0;
+   fDArea             = (tmppeak->IntegralError(xlow, xhigh, tmppeak->GetParameters(), CovMat.GetMatrixArray())) / fithist->GetBinWidth(1);
 
    delete tmppeak;
 
+   // always print the results of the fit even if not verbose
+   if(!quiet) Print();
 
-
-   if(!verbose) {
-      Print(); /*
-       printf("BG Area:         %.02f\n",bgArea);
-       printf("GetChisquared(): %.4f\n", TF1::GetChisquare());
-       printf("GetNDF():        %i\n",   TF1::GetNDF());
-       printf("GetProb():       %.4f\n", TF1::GetProb());*/
-      // TF1::Print();
-   }
-
-   // printf("fithist->GetListOfFunctions()->FindObject(this) =
-   // 0x%08x\n",fithist->GetListOfFunctions()->FindObject(GetName()));
-   // fflush(stdout);
    Copy(*fithist->GetListOfFunctions()->FindObject(GetName()));
-   //  fithist->GetListOfFunctions()->Add(&fBGFit); //use to be a clone.
-   fithist->GetListOfFunctions()->Add(fBGFit.Clone()); // use to be a clone.
+   fithist->GetListOfFunctions()->Add(fBGFit.Clone());
    fLastFit = this;
 
-   SetParent(nullptr); // fithist);
+   SetParent(nullptr);
 
-   // delete tmppeak;
    return true;
 }
 
@@ -433,19 +368,18 @@ void GPeak::Clear(Option_t* opt)
 void GPeak::Print(Option_t* opt) const
 {
    TString options = opt;
-   printf(GREEN);
-   printf("Name: %s \n", GetName());
-   printf("Centroid:  %1f +/- %1f \n", GetParameter("centroid"), GetParError(GetParNumber("centroid")));
-   printf("Area:      %1f +/- %1f \n", fArea, fDArea);
-   printf("Sum:       %1f +/- %1f \n", fSum, fDSum);
-   printf("FWHM:      %1f +/- %1f \n", GetFWHM(), GetFWHMErr());
-   printf("Reso:      %1f%%  \n", GetFWHM() / GetParameter("centroid") * 100.);
-   printf("Chi^2/NDF: %1f\n", fChi2 / fNdf);
+   std::cout << GREEN;
+   std::cout << "Name: " << GetName() << std::endl;
+   std::cout << "Centroid:  " << GetParameter("centroid") << " +- " << GetParError(GetParNumber("centroid")) << std::endl;
+   std::cout << "Area:      " << fArea << " +- " << fDArea << std::endl;
+   std::cout << "Sum:       " << fSum << " +- " << fDSum << std::endl;
+   std::cout << "FWHM:      " << GetFWHM() << " +- " << GetFWHMErr() << std::endl;
+   std::cout << "Reso:      " << GetFWHM() / GetParameter("centroid") * 100. << "%%" << std::endl;
+   std::cout << "Chi^2/NDF: " << fChi2 / fNdf << std::endl;
    if(options.Contains("all")) {
       TF1::Print(opt);
    }
-   printf(RESET_COLOR);
-   printf("\n");
+   std::cout << RESET_COLOR;
 }
 
 void GPeak::DrawResiduals(TH1* hist) const
@@ -454,7 +388,7 @@ void GPeak::DrawResiduals(TH1* hist) const
       return;
    }
    if(fChi2 < 0.000000001) {
-      printf("No fit performed\n");
+      std::cout << "No fit performed" << std::endl;
       return;
    }
    Double_t xlow, xhigh;

@@ -1,5 +1,5 @@
-#ifndef _TANALYSISWRITELOOP_H_
-#define _TANALYSISWRITELOOP_H_
+#ifndef TANALYSISWRITELOOP_H
+#define TANALYSISWRITELOOP_H
 
 /** \addtogroup Loops
  *  @{
@@ -14,7 +14,6 @@
 #include "StoppableThread.h"
 #include "ThreadsafeQueue.h"
 #include "TUnpackedEvent.h"
-#include "TAnalysisWriteLoopClient.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 ///
@@ -26,12 +25,15 @@
 
 class TAnalysisWriteLoop : public StoppableThread {
 public:
-   static TAnalysisWriteLoop* Get(std::string name = "", std::string output_filename = "");
+   static TAnalysisWriteLoop* Get(std::string name = "", std::string outputFilename = "");
 
    ~TAnalysisWriteLoop() override;
 
 #ifndef __CINT__
-   std::shared_ptr<ThreadsafeQueue<std::shared_ptr<TUnpackedEvent>>>&  InputQueue() { return fInputQueue; }
+   std::shared_ptr<ThreadsafeQueue<std::shared_ptr<TUnpackedEvent>>>& InputQueue()
+   {
+      return fInputQueue;
+   }
    std::shared_ptr<ThreadsafeQueue<std::shared_ptr<const TFragment>>>& OutOfOrderQueue() { return fOutOfOrderQueue; }
 #endif
 
@@ -45,26 +47,26 @@ public:
    size_t GetRate() override { return 0; }
 
    std::string EndStatus() override;
-	void OnEnd() override;
+   void        OnEnd() override;
 
 protected:
    bool Iteration() override;
 
 private:
-   TAnalysisWriteLoop(std::string name, std::string output_filename);
+   TAnalysisWriteLoop(std::string name, const std::string& outputFilename);
    void AddBranch(TClass* cls);
+   void WriteEvent(std::shared_ptr<TUnpackedEvent>& event);
 
-	bool Server();
-
-	std::string fOutputFilename;
-	size_t fCurrentClient;
-	bool fOutOfOrder;
-	TServerSocket* fServerSocket;
+   TFile*     fOutputFile;
+   TTree*     fEventTree;
+   TTree*     fOutOfOrderTree;
+   TFragment* fOutOfOrderFrag;
+   bool       fOutOfOrder;
 #ifndef __CINT__
+   std::map<TClass*, TDetector**>                                     fDetMap;
+   std::map<TClass*, TDetector*>                                      fDefaultDets;
    std::shared_ptr<ThreadsafeQueue<std::shared_ptr<TUnpackedEvent>>>  fInputQueue;
    std::shared_ptr<ThreadsafeQueue<std::shared_ptr<const TFragment>>> fOutOfOrderQueue;
-	std::vector<TAnalysisWriteLoopClient*> fClients;
-	std::future<bool> fServerFuture;
 #endif
 
    ClassDefOverride(TAnalysisWriteLoop, 0);

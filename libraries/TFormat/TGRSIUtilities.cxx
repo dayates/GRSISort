@@ -13,24 +13,42 @@
 bool file_exists(const char* filename)
 {
    /// This checks if the path exist, and if it is a file and not a directory!
-   struct stat buffer;
-	int state = stat(filename, &buffer);
-	// state != 0 means we couldn't get file attributes. This doesn't necessary mean the file
-	// does not exist, we might just be missing permission to access it. But for our purposes
-	// this is the same as the file not existing.
-	if(state != 0) return false;
-	// we got the file attributes, so it exsist, we just need to check if it is a directory.
+   struct stat buffer {};
+   int         state = stat(filename, &buffer);
+   // state != 0 means we couldn't get file attributes. This doesn't necessary mean the file
+   // does not exist, we might just be missing permission to access it. But for our purposes
+   // this is the same as the file not existing.
+   if(state != 0) { return false; }
+   // we got the file attributes, so it exsist, we just need to check if it is a directory.
    return !S_ISDIR(buffer.st_mode);
 }
 
 bool all_files_exist(const std::vector<std::string>& filenames)
 {
-   for(auto& filename : filenames) {
-      if(!file_exists(filename.c_str())) {
-         return false;
-      }
+   return std::all_of(filenames.begin(), filenames.end(), [](auto filename) { return file_exists(filename.c_str()); });
+}
+
+void trim(std::string& line, const std::string& trimChars)
+{
+   /// Removes the string "trimCars" from  the string 'line'
+   if(line.length() == 0) {
+      return;
    }
-   return true;
+   std::size_t found = line.find_first_not_of(trimChars);
+   if(found != std::string::npos) {
+      line = line.substr(found, line.length());
+   }
+   found = line.find_last_not_of(trimChars);
+   if(found != std::string::npos) {
+      line = line.substr(0, found + 1);
+   }
+}
+
+void trimWS(std::string& line)
+{
+   /// Removes whitespace from the string 'line'
+   line.erase(line.begin(), std::find_if(line.begin(), line.end(), [](int ch) { return std::isspace(ch) == 0; }));
+   line.erase(std::find_if(line.rbegin(), line.rend(), [](int ch) { return std::isspace(ch) == 0; }).base(), line.end());
 }
 
 int GetRunNumber(const std::string& fileName)
@@ -43,7 +61,6 @@ int GetRunNumber(const std::string& fileName)
       return 0;
    }
    std::size_t found2 = fileName.rfind('-');
-   // printf("found 2 = %i\n",found2);
 
    if(found2 == std::string::npos) {
       found2 = fileName.rfind('_');

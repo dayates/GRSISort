@@ -11,7 +11,7 @@ class TF1;
 class GH1D : public TH1D {
 public:
    GH1D() : TH1D(), parent(nullptr), projection_axis(-1) {}
-   GH1D(const TVectorD& v) : TH1D(v), parent(nullptr), projection_axis(-1) {}
+   explicit GH1D(const TVectorD& vec) : TH1D(vec), parent(nullptr), projection_axis(-1) {}
    GH1D(const char* name, const char* title, Int_t nbinsx, const Float_t* xbins)
       : TH1D(name, title, nbinsx, xbins), parent(nullptr), projection_axis(-1)
    {
@@ -32,7 +32,7 @@ public:
    // virtual void SetOption(Option_t* option=" ");
 
    TObject* GetParent() const { return parent.GetObject(); }
-   void SetParent(TObject* obj) { parent = obj; }
+   void     SetParent(TObject* obj) { parent = obj; }
 
    int  GetProjectionAxis() const { return projection_axis; }
    void SetProjectionAxis(int axis) { projection_axis = axis; }

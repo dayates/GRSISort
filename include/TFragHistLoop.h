@@ -1,5 +1,5 @@
-#ifndef _TFRAGHISTOGRAMLOOP_H_
-#define _TFRAGHISTOGRAMLOOP_H_
+#ifndef TFRAGHISTOGRAMLOOP_H
+#define TFRAGHISTOGRAMLOOP_H
 
 /** \addtogroup Loops
  *  @{
@@ -29,13 +29,16 @@ public:
    ~TFragHistLoop() override;
 
 #ifndef __CINT__
-   std::shared_ptr<ThreadsafeQueue<std::shared_ptr<const TFragment>>>& InputQueue() { return fInputQueue; }
+   std::shared_ptr<ThreadsafeQueue<std::shared_ptr<const TFragment>>>& InputQueue()
+   {
+      return fInputQueue;
+   }
 #endif
 
-   void SetOutputFilename(const std::string& name);
+   void        SetOutputFilename(const std::string& name);
    std::string GetOutputFilename() const;
 
-   void LoadLibrary(std::string library);
+   void        LoadLibrary(std::string library);
    std::string GetLibraryName() const;
    void        ClearHistograms();
 
@@ -57,7 +60,7 @@ protected:
    bool Iteration() override;
 
 private:
-   TFragHistLoop(std::string name);
+   explicit TFragHistLoop(std::string name);
 
    TCompiledHistograms fCompiledHistograms;
 

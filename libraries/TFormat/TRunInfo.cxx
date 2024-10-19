@@ -12,11 +12,6 @@
 #include "GVersion.h"
 #include "TGRSIUtilities.h"
 
-std::string TRunInfo::fVersion;
-std::string TRunInfo::fFullVersion;
-std::string TRunInfo::fDate;
-std::string TRunInfo::fLibraryVersion;
-
 Bool_t TRunInfo::ReadInfoFromFile(TFile* tempf)
 {
    TDirectory* savdir = gDirectory;
@@ -65,7 +60,7 @@ Bool_t TRunInfo::ReadInfoFromFile(TFile* tempf)
    return false;
 }
 
-TRunInfo::TRunInfo() : fRunNumber(0), fSubRunNumber(-1), fDetectorInformation(nullptr)
+TRunInfo::TRunInfo()
 {
    /// Default ctor for TRunInfo. The default values are:
    ///
@@ -84,8 +79,8 @@ void TRunInfo::Print(Option_t* opt) const
    str << "Comment: " << RunComment() << std::endl;
    auto      tmpStart = static_cast<time_t>(RunStart());
    auto      tmpStop  = static_cast<time_t>(RunStop());
-   struct tm runStart = *localtime(const_cast<const time_t*>(&tmpStart));
-   struct tm runStop  = *localtime(const_cast<const time_t*>(&tmpStop));
+   struct tm runStart = *localtime(&tmpStart);
+   struct tm runStop  = *localtime(&tmpStop);
    str << std::setfill('0');
    if(RunNumber() != 0 && SubRunNumber() != -1) {
       str << "\t\tRunNumber:          " << std::setw(5) << RunNumber() << std::endl;
@@ -93,8 +88,14 @@ void TRunInfo::Print(Option_t* opt) const
    } else if(RunNumber() != 0) {
       str << "\t\tRunNumber:          " << std::setw(5) << RunNumber() << std::endl;
       str << "\t\tSubRunNumbers:      " << std::setw(3) << FirstSubRunNumber() << "-" << std::setw(3) << LastSubRunNumber() << std::endl;
-   } else {
+   } else if(FirstRunNumber() != LastRunNumber()) {
       str << "\t\tRunNumbers:         " << std::setw(5) << FirstRunNumber() << "-" << std::setw(5) << LastRunNumber() << std::endl;
+      str << "\t\tNo missing runs" << std::endl;
+   } else if(!fRunList.empty()) {
+      str << "\t\tRunNumbers:         " << std::setw(5) << fRunList.begin()->first << "-" << std::setw(5) << fRunList.rbegin()->first << std::endl;
+      str << "\t\tMissing runs:       " << ListOfMissingRuns() << std::endl;
+   } else {
+      str << "\t\tNo runs in list?" << std::endl;
    }
    str << std::setfill(' ');
    if(RunStart() != 0 && RunStop() != 0) {
@@ -172,8 +173,7 @@ void TRunInfo::SetAnalysisTreeBranches(TTree*)
 
 Bool_t TRunInfo::ReadInfoFile(const char* filename)
 {
-   // Read in a run info file. These files have the extension .info.
-   // An example can be found in the "examples" directory.
+   /// Read in a run info file. These files have the extension .info.
    std::string infilename;
    infilename.append(filename);
    std::cout << "Reading info from file: " << CYAN << filename << RESET_COLOR << std::endl;
@@ -201,7 +201,7 @@ Bool_t TRunInfo::ReadInfoFile(const char* filename)
    SetRunInfoFileName(filename);
    SetRunInfoFile(buffer);
 
-   return ParseInputData(const_cast<const char*>(buffer));
+   return ParseInputData(buffer);
 }
 
 Bool_t TRunInfo::ParseInputData(const char* inputdata, Option_t* opt)
@@ -243,12 +243,12 @@ Bool_t TRunInfo::ParseInputData(const char* inputdata, Option_t* opt)
          std::istringstream str(line);
          double             temp_double = 0.;
          str >> temp_double;
-         Get()->SetHPGeArrayPosition(temp_double);
+         TRunInfo::SetHPGeArrayPosition(temp_double);
       } else if(type == "BADCYCLE") {
          std::istringstream str(line);
          int                tmp_int = 0;
          while(!(str >> tmp_int).fail()) {
-            Get()->AddBadCycle(tmp_int);
+            TRunInfo::AddBadCycle(tmp_int);
          }
       }
    }
@@ -347,7 +347,7 @@ bool TRunInfo::WriteInfoFile(const std::string& filename)
    if(filename.length() > 0) {
       std::ofstream infoout;
       infoout.open(filename.c_str());
-      std::string infostr = Get()->PrintToString();
+      std::string infostr = TRunInfo::PrintToString();
       infoout << infostr.c_str();
       infoout << std::endl;
       infoout << std::endl;
@@ -387,17 +387,16 @@ TEventBuildingLoop::EBuildMode TRunInfo::BuildMode() const
 void TRunInfo::Add(TRunInfo* runinfo, bool verbose)
 {
    // add new run to list of runs (and check if the current run needs to be added)
-   if(fRunList.empty()) {
-      std::pair<int, int> currentPair = std::make_pair(fRunNumber, fSubRunNumber);
-      fRunList.push_back(currentPair);
-   }
+   //if(fRunList.empty()) {
+   //   fRunList.emplace(fRunNumber, fSubRunNumber);
+   //}
    std::pair<int, int> newPair = std::make_pair(runinfo->fRunNumber, runinfo->fSubRunNumber);
    // check for dual entries
-   if(std::find(fRunList.begin(), fRunList.end(), newPair) != fRunList.end()) {
+   if(fRunList.find(newPair) != fRunList.end()) {
       std::cerr << DYELLOW << "Warning, adding run " << std::setfill('0') << std::setw(5) << newPair.first << "_" << std::setw(3) << newPair.second << std::setfill(' ') << " again!" << RESET_COLOR << std::endl;
       return;
    }
-   fRunList.push_back(newPair);
+   fRunList.insert(newPair);
 
    if(verbose) { std::cout << "adding run " << runinfo->fRunNumber << ", sub run " << runinfo->fSubRunNumber << " to run " << fRunNumber << ", sub run " << fSubRunNumber << std::endl; }
    // add the run length together
@@ -488,13 +487,15 @@ void TRunInfo::Add(TRunInfo* runinfo, bool verbose)
       } else {
          if(verbose) { std::cout << "found second sub run (" << runinfo->fSubRunNumber << ") non-consecutive to current sub run (" << fSubRunNumber << ")" << std::endl; }
          // with multiple non-sequential subruns added, the sub run number and start/stop have no meaning anymore
-         fRunStart = 0.;
-         fRunStop  = 0.;
+         fRunStart          = 0.;
+         fRunStop           = 0.;
+         fFirstSubRunNumber = -1;
+         fLastSubRunNumber  = -1;
       }
       // sub run number is only meaningful if it's the only sub run
       fSubRunNumber = -1;
    } else {
-      // we have the same run with a range of sub-runs already added, so check if this once fits at the end or the beginning
+      // we have the same run with a range of sub-runs already added, so check if this one fits at the end or the beginning
       if(runinfo->fSubRunNumber + 1 == fFirstSubRunNumber) {
          if(verbose) { std::cout << "found another sub run (" << runinfo->fSubRunNumber << ") before first sub run (" << fFirstSubRunNumber << ")" << std::endl; }
          // use runinfo as first run
@@ -516,16 +517,64 @@ void TRunInfo::Add(TRunInfo* runinfo, bool verbose)
    }
 }
 
-void TRunInfo::PrintRunList()
+void TRunInfo::PrintRunList() const
 {
    if(fRunList.empty()) {
       std::cout << "No runs added to list of runs!" << std::endl;
       return;
    }
-   std::sort(fRunList.begin(), fRunList.end());
    std::cout << "Got " << fRunList.size() << " runs:" << std::endl;
    for(auto pair : fRunList) {
       std::cout << std::setw(5) << std::setfill('0') << pair.first << "_" << std::setw(3) << pair.second << std::setfill(' ') << std::endl;
+   }
+}
+
+std::string TRunInfo::ListOfMissingRuns(bool all) const
+{
+   /// Outputs a comma separated list of all runs missing between fFirstRunNumber and fLastRunNumber.
+   /// If no runs are missing prints "none".
+
+   if(fRunList.empty()) {
+      return {"no run list -> none missing?"};
+   }
+
+   std::ostringstream result;
+
+   // loop over all runs between the first and the last one (we know that these two are included)
+   // and check if the run is in the list of runs (or any subrun that is part of this run)
+   for(int run = fRunList.begin()->first; run < fRunList.rbegin()->first; ++run) {
+      if(std::find_if(fRunList.begin(), fRunList.end(), [&run](std::pair<int, int> i) { return run == i.first; }) == fRunList.end()) {
+         if(!result.str().empty()) {
+            result << ", ";
+         }
+         result << std::setw(5) << std::setfill('0') << run;
+      }
+   }
+
+   // if we found no missing runs, we print "none"
+   if(result.str().empty()) {
+      return {"none"};
+   }
+
+   // unless the "all" flag is set, we limit ourself to printing 140 characters (should be 20 runs?)
+   std::cout << " current string length is " << result.str().length() << " and all is set to " << (all ? "true" : "false") << std::endl;
+   if(!all && result.str().length() > 140) {
+      result.str(result.str().substr(0, 140));
+      result.seekp(0, std::ios_base::end);
+      result << " ... and more";
+      std::cout << " limited string length is " << result.str().length() << std::endl;
+   }
+   return result.str();
+}
+
+void TRunInfo::PrintVersion() const
+{
+   if(fVersion.empty()) {
+      std::cout << YELLOW << "Unknown version, this file was probably generated with TRunInfo version 17 or older" << RESET_COLOR << std::endl;
+   } else {
+      std::cout << "This file was generated with GRSISort version " << fVersion << " (" << fFullVersion << ")" << std::endl
+                << "From " << fDate << std::endl
+                << "Using the parser library version " << fLibraryVersion << " from " << fLibraryPath << std::endl;
    }
 }
 
@@ -552,3 +601,36 @@ std::string TRunInfo::CreateLabel(bool quiet)
 
    return result;
 }
+
+//void TRunInfo::Streamer(TBuffer &R__b)
+//{
+//   /// Stream an object of class TRunInfo.
+//	/// Explicitly writes and reads the static members as well!
+//
+//   if(R__b.IsReading()) {
+//      R__b.ReadClassBuffer(TRunInfo::Class(),this);
+//		Version_t R__v = R__b.ReadVersion();
+//		std::cout << "Got R__v = " << R__v << std::endl;
+//		if(R__v > 17) {
+//			R__b.ReadStdString(fVersion);
+//			R__b.ReadStdString(fFullVersion);
+//			R__b.ReadStdString(fDate);
+//			R__b.ReadStdString(fLibraryVersion);
+//			R__b.ReadStdString(fLibraryPath);
+//		} else {
+//			fVersion = "unknown";
+//			fFullVersion = "unknown";
+//			fDate = "unknown";
+//			fLibraryVersion = "unknown";
+//			fLibraryPath = "unknown";
+//		}
+//	} else {
+//		R__b.WriteClassBuffer(TRunInfo::Class(),this);
+//		R__b.WriteVersion(TRunInfo::Class(), true);
+//		R__b.WriteStdString(fVersion);
+//		R__b.WriteStdString(fFullVersion);
+//		R__b.WriteStdString(fDate);
+//		R__b.WriteStdString(fLibraryVersion);
+//		R__b.WriteStdString(fLibraryPath);
+//	}
+//}

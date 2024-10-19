@@ -3,16 +3,14 @@
 #if ROOT_VERSION_CODE >= ROOT_VERSION(6, 14, 0)
 
 TGRSIHelper::TGRSIHelper(TList* input)
+   : fPpg(static_cast<TPPG*>(input->FindObject("TPPG"))), fRunInfo(static_cast<TRunInfo*>(input->FindObject("TRunInfo"))), fUserSettings(static_cast<TUserSettings*>(input->FindObject("UserSettings")))
 {
-   fPpg          = static_cast<TPPG*>(input->FindObject("TPPG"));
-   fRunInfo      = static_cast<TRunInfo*>(input->FindObject("TRunInfo"));
-   fUserSettings = static_cast<TUserSettings*>(input->FindObject("UserSettings"));
    // get the analysis options from the input list and assign them to our local analysis options
    // (this might not be needed anymore since the workers aren't started as separate processes but threads)
    *(TGRSIOptions::AnalysisOptions()) = *static_cast<TAnalysisOptions*>(input->FindObject("TAnalysisOptions"));
    // check that we have a parser library
    if(TGRSIOptions::Get()->ParserLibrary().empty()) {
-      std::stringstream str;
+      std::ostringstream str;
       str << DRED << "No parser library set!" << RESET_COLOR << std::endl;
       throw std::runtime_error(str.str());
    }
@@ -224,7 +222,7 @@ void TGRSIHelper::CheckSizes(unsigned int slot, const char* usage)
          TBufferFile buf(TBuffer::kWrite, 10000);
          obj->IsA()->WriteBuffer(buf, obj);
          if(buf.Length() > fSizeLimit) {
-            std::stringstream str;
+            std::ostringstream str;
             str << DRED << slot << ". slot: " << obj->ClassName() << " '" << obj->GetName() << "' too large to " << usage << ": " << buf.Length() << " bytes = " << buf.Length() / 1024. / 1024. / 1024. << " GB, removing it!" << RESET_COLOR << std::endl;
             std::cout << str.str();
             // we only remove it from the output list, not deleting the object itself

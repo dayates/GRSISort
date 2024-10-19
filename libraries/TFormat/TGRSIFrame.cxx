@@ -38,7 +38,7 @@ TGRSIFrame::TGRSIFrame()
       check.Close();
    }
    if(treeName.empty()) {
-      std::stringstream str;
+      std::ostringstream str;
       str << "Failed to find 'AnalysisTree' or 'FragmentTree' in '" << fOptions->RootInputFiles()[0] << "', either provide a different tree name via --tree-name flag or check input file" << std::endl;
       throw std::runtime_error(str.str());
    }
@@ -53,10 +53,16 @@ TGRSIFrame::TGRSIFrame()
    fPpg = new TPPG;
 
    // loop over input files, add them to the chain, and read the runinfo and calibration from them
+   bool first = true;
    for(const auto& fileName : fOptions->RootInputFiles()) {
       if(chain->Add(fileName.c_str(), 0) >= 1) {   // setting nentries parameter to zero make TChain load the file header and return a 1 if the file was opened successfully
          TFile* file = TFile::Open(fileName.c_str());
-         TRunInfo::AddCurrent();
+			if(first) {
+					  first = false;
+					  TRunInfo::ReadInfoFromFile(file);
+			} else {
+					  TRunInfo::AddCurrent();
+			}
          auto* ppg = static_cast<TPPG*>(file->Get("PPG"));
          if(ppg != nullptr) {
             fPpg->Add(ppg);
@@ -162,7 +168,7 @@ void TGRSIFrame::Run()
          std::cout << "\r[" << std::left << std::setw(barWidth) << progressBar << ' ' << "100 %]" << std::flush;
 #endif
       } catch(TGRSIMapException<std::string>& e) {
-         std::cout << DRED << "Exception in " << __PRETTY_FUNCTION__ << ": " << e.detail() << RESET_COLOR << std::endl;
+         std::cout << DRED << "Exception in " << __PRETTY_FUNCTION__ << ": " << e.detail() << RESET_COLOR << std::endl;   // NOLINT(cppcoreguidelines-pro-type-const-cast, cppcoreguidelines-pro-bounds-array-to-pointer-decay)
          throw e;
       }
    } else {

@@ -3,11 +3,11 @@
 #include "TKinematics.h"
 #include "Globals.h"
 
-TKinematics::TKinematics(double beamE, const char* beam, const char* targ, const char* ejec, const char* reco, const char* name)
-   : fEBeam(beamE), fCm2LabSpline(nullptr)
+TKinematics::TKinematics(double eBeam, const char* beam, const char* targ, const char* ejec, const char* reco, const char* name)
+   : fEBeam(eBeam)
 {
-   auto      projectile = new TNucleus(beam);
-   auto      target     = new TNucleus(targ);
+   auto*     projectile = new TNucleus(beam);
+   auto*     target     = new TNucleus(targ);
    TNucleus* ejectile   = nullptr;
    TNucleus* recoil     = nullptr;
 
@@ -37,7 +37,7 @@ TKinematics::TKinematics(double beamE, const char* beam, const char* targ, const
 }
 
 TKinematics::TKinematics(TNucleus* projectile, TNucleus* target, double eBeam, const char* name)
-   : fEBeam(eBeam), fQValue(0), fCm2LabSpline(nullptr)
+   : fEBeam(eBeam)
 {
    // By not providing the ejectile (only prociding projectile, target, and beam energy) elestic scattering is assumed
    fParticle[0] = projectile;
@@ -52,7 +52,7 @@ TKinematics::TKinematics(TNucleus* projectile, TNucleus* target, double eBeam, c
 }
 
 TKinematics::TKinematics(TNucleus* projectile, TNucleus* target, TNucleus* recoil, TNucleus* ejectile, double eBeam, const char* name)
-   : fEBeam(eBeam), fCm2LabSpline(nullptr)
+   : fEBeam(eBeam)
 {
    // Kinematics using the provided projectile, target, recoil, and ejectile, as well as beam energy
    fParticle[0] = projectile;
@@ -70,7 +70,7 @@ TKinematics::TKinematics(TNucleus* projectile, TNucleus* target, TNucleus* recoi
 }
 
 TKinematics::TKinematics(TNucleus* projectile, TNucleus* target, TNucleus* recoil, TNucleus* ejectile, double eBeam, double ex3, const char* name)
-   : fEBeam(eBeam), fCm2LabSpline(nullptr)
+   : fEBeam(eBeam)
 {
    // Kinematics using the provided projectile, target, recoil, ejectile, beam energy, and excited state of the recoil
    fParticle[0] = projectile;
@@ -88,10 +88,10 @@ TKinematics::TKinematics(TNucleus* projectile, TNucleus* target, TNucleus* recoi
 }
 
 TKinematics::TKinematics(const char* beam, const char* targ, const char* ejec, const char* reco, double eBeam, double ex3, const char* name)
-   : fEBeam(eBeam), fCm2LabSpline(nullptr)
+   : fEBeam(eBeam)
 {
-   auto      projectile = new TNucleus(beam);
-   auto      target     = new TNucleus(targ);
+   auto*     projectile = new TNucleus(beam);
+   auto*     target     = new TNucleus(targ);
    TNucleus* ejectile   = nullptr;
    TNucleus* recoil     = nullptr;
 
@@ -536,7 +536,7 @@ TSpline3* TKinematics::Steffen_labvscminverse(double thmin, double thmax, double
    auto* cm  = new double[static_cast<int>((thmax - thmin) / size) + 1];
    auto* lab = new double[static_cast<int>((thmax - thmin) / size) + 1];
    int   nr  = 0;
-   for(int i = ((thmax - thmin) / size); i > 0; i--) {
+   for(auto i = static_cast<int>((thmax - thmin) / size); i > 0; i--) {
       cm[nr]  = i;
       lab[nr] = Steffen_cm2labinverse(cm[nr] * PI / 180., part) * 180. / PI;
       if(lab[nr] > 0.01 && lab[nr] < 179.99) {

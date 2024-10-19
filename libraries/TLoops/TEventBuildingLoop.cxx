@@ -78,13 +78,13 @@ bool TEventBuildingLoop::Iteration()
 {
    // Pull something off of the input queue.
    std::shared_ptr<const TFragment> input_frag = nullptr;
-   fInputSize                                  = fInputQueue->Pop(input_frag, 0);
-   if(fInputSize < 0) {
-      fInputSize = 0;
+   InputSize(fInputQueue->Pop(input_frag, 0));
+   if(InputSize() < 0) {
+      InputSize(0);
    }
 
    if(input_frag != nullptr) {
-      ++fItemsPopped;
+      IncrementItemsPopped();
       if(!fSkipInputSort) {
          fOrdered.insert(input_frag);
          if(fOrdered.size() < fSortingDepth) {
@@ -148,15 +148,15 @@ bool TEventBuildingLoop::CheckBuildCondition(const std::shared_ptr<const TFragme
 bool TEventBuildingLoop::CheckTimeCondition(const std::shared_ptr<const TFragment>& frag)
 {
    double time        = frag->GetTime();
-   double event_start = (!fNextEvent.empty() ? (TGRSIOptions::Get()->AnalysisOptions()->StaticWindow() ? fNextEvent[0]->GetTime()
-                                                                                                       : fNextEvent.back()->GetTime())
+   double event_start = (!fNextEvent.empty() ? (TGRSIOptions::AnalysisOptions()->StaticWindow() ? fNextEvent[0]->GetTime()
+                                                                                                : fNextEvent.back()->GetTime())
                                              : time);
 
    // save time every <BuildWindow> fragments
    if(frag->GetEntryNumber() % (TGRSIOptions::Get()->SortDepth()) == 0) {
       TSortingDiagnostics::Get()->AddTime(event_start);
    }
-   if(time > event_start + fBuildWindow || time < event_start - fBuildWindow) {
+   if(time > event_start + static_cast<double>(fBuildWindow) || time < event_start - static_cast<double>(fBuildWindow)) {
       // std::cout.precision(12);
       // std::cout<<std::setw(12)<<time<<", "<<std::setw(12)<<event_start<<", "<<std::setw(12)<<fBuildWindow<<"; "<<std::setw(12)<<fabs(time - event_start)<<", "<<std::setw(12)<<event_start + fBuildWindow<<", "<<std::setw(12)<<event_start - fBuildWindow<<std::endl;
       fOutputQueue->Push(fNextEvent);
@@ -186,8 +186,8 @@ bool TEventBuildingLoop::CheckTimeCondition(const std::shared_ptr<const TFragmen
 bool TEventBuildingLoop::CheckTimestampCondition(const std::shared_ptr<const TFragment>& frag)
 {
    uint64_t timestamp   = frag->GetTimeStampNs();
-   uint64_t event_start = (!fNextEvent.empty() ? (TGRSIOptions::Get()->AnalysisOptions()->StaticWindow() ? fNextEvent[0]->GetTimeStampNs()
-                                                                                                         : fNextEvent.back()->GetTimeStampNs())
+   uint64_t event_start = (!fNextEvent.empty() ? (TGRSIOptions::AnalysisOptions()->StaticWindow() ? fNextEvent[0]->GetTimeStampNs()
+                                                                                                  : fNextEvent.back()->GetTimeStampNs())
                                                : timestamp);
 
    // save timestamp every <BuildWindow> fragments
@@ -255,8 +255,8 @@ bool TEventBuildingLoop::CheckTriggerIdCondition(const std::shared_ptr<const TFr
 
 std::string TEventBuildingLoop::EndStatus()
 {
-   std::stringstream str;
-   str << fInputQueue->Name() << ": " << fItemsPopped << "/" << fInputQueue->ItemsPopped() << " items popped"
+   std::ostringstream str;
+   str << fInputQueue->Name() << ": " << ItemsPopped() << "/" << fInputQueue->ItemsPopped() << " items popped"
        << std::endl;
 
    return str.str();

@@ -28,7 +28,7 @@
 ///////////////////////////////////////////////////////////////
 
 template <class T>
-class TSingleton : public TObject {
+class TSingleton : public TObject {   // NOLINT(cppcoreguidelines-virtual-class-destructor)
 public:
    static T* Get(bool verbose = false)
    {
@@ -49,12 +49,13 @@ public:
                fDir = gDirectory;   // in either case (read from file or created new), gDirectory is the current directory
                break;               // we will find the newest key first, so we want to break here and not try and read other instaces of the same class
             }
-         }
+         } else if(verbose) { std::cout << "Not reading " << T::Class()->GetName() << " from file!" << std::endl; }
          if(fSingleton == nullptr) {
             fSingleton = new T;
             fDir       = gDirectory;   // in either case (read from file or created new), gDirectory is the current directory
+				if(verbose) { std::cout << "Created new singleton of class " << T::Class()->GetName() << std::endl; }
          }
-      }
+      } else if(verbose) { std::cout << "Re-using old singleton of class " << T::Class()->GetName() << std::endl; }
       return fSingleton;
    }
 
@@ -169,19 +170,20 @@ public:
    }
 
 protected:
-   TSingleton()                             = default;
-   TSingleton(const TSingleton&)            = default;
-   TSingleton(TSingleton&&)                 = default;
-   TSingleton& operator=(const TSingleton&) = default;
-   TSingleton& operator=(TSingleton&&)      = default;
-   ~TSingleton()                            = default;
+   TSingleton()                                 = default;
+   TSingleton(const TSingleton&)                = default;
+   TSingleton(TSingleton&&) noexcept            = default;
+   TSingleton& operator=(const TSingleton&)     = default;
+   TSingleton& operator=(TSingleton&&) noexcept = default;
+   // seems like clang-tidy thinks this destructor is protected and virtual?
+   ~TSingleton() = default;   // NOLINT(cppcoreguidelines-virtual-class-destructor)
 
 private:
    static T*          fSingleton;
    static TDirectory* fDir;
 
    /// \cond CLASSIMP
-   ClassDef(TSingleton, 1)
+   ClassDef(TSingleton, 1)   // NOLINT(readability-else-after-return)
    /// \endcond
 };
 

@@ -14,7 +14,7 @@ TUnpackingLoop* TUnpackingLoop::Get(std::string name)
       name = "unpacking_loop";
    }
 
-   auto loop = static_cast<TUnpackingLoop*>(StoppableThread::Get(name));
+   auto* loop = static_cast<TUnpackingLoop*>(StoppableThread::Get(name));
    if(loop == nullptr) {
       loop = new TUnpackingLoop(name);
    }
@@ -51,7 +51,7 @@ bool TUnpackingLoop::Iteration()
    std::shared_ptr<TRawEvent> event;
    int                        error = fInputQueue->Pop(event);
    if(error < 0) {
-      fInputSize = 0;
+      InputSize(0);
       if(fInputQueue->IsFinished()) {
          // Source is dead, push the last event and stop.
          fParser->SetFinished();
@@ -63,9 +63,9 @@ bool TUnpackingLoop::Iteration()
       std::this_thread::sleep_for(std::chrono::milliseconds(10));
       return true;
    }
-   fParser->SetStatusVariables(&fItemsPopped, &fInputSize);
-   fInputSize = error;   //"error" is the return value of popping an event from the input queue (which returns the number of events left)
-   ++fItemsPopped;
+   fParser->SetStatusVariables(&ItemsPopped(), &InputSize());
+   InputSize(error);   //"error" is the return value of popping an event from the input queue (which returns the number of events left)
+   IncrementItemsPopped();
 
    fFragsReadFromRaw += fParser->Process(event);
    fGoodFragsRead += event->GoodFrags();
@@ -75,13 +75,13 @@ bool TUnpackingLoop::Iteration()
 
 std::string TUnpackingLoop::EndStatus()
 {
-   std::stringstream str;
+   std::ostringstream status;
    if(fFragsReadFromRaw > 0) {
-      str << "\r" << Name() << ":\t" << fGoodFragsRead << " good fragments out of " << fFragsReadFromRaw
-          << " fragments => " << (100. * fGoodFragsRead) / fFragsReadFromRaw << "% passed" << std::endl;
+      status << "\r" << Name() << ":\t" << fGoodFragsRead << " good fragments out of " << fFragsReadFromRaw
+             << " fragments => " << 100. * static_cast<double>(fGoodFragsRead) / static_cast<double>(fFragsReadFromRaw) << "% passed" << std::endl;
    } else {
-      str << "\rno fragments read from midas => none parsed!" << std::endl;
+      status << "\rno fragments read from midas => none parsed!" << std::endl;
    }
-   str << fParser->OutputQueueStatus();
-   return str.str();
+   status << fParser->OutputQueueStatus();
+   return status.str();
 }

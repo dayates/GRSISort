@@ -34,15 +34,21 @@ const char* const nulFileName = "/dev/null";
 ///
 /// \class TGRSIProof
 ///
-/// This Class allows proof to work with GRSI
-///
+/// This class allows proof to work with GRSI
+/// \deprecated
+/// Since PROOF is deprecated it is recommended to use TGRSIFrame
+/// instead.
 ///
 /////////////////////////////////////////////////////////////////
 
 class TGRSIProof : public TProof {
 public:
-   TGRSIProof()           = default;
-   ~TGRSIProof() override = default;
+   TGRSIProof()                                 = default;
+   TGRSIProof(const TGRSIProof&)                = delete;
+   TGRSIProof(TGRSIProof&&) noexcept            = delete;
+   TGRSIProof& operator=(const TGRSIProof&)     = delete;
+   TGRSIProof& operator=(TGRSIProof&&) noexcept = delete;
+   ~TGRSIProof()                                = default;
 
    static TGRSIProof* Open(const char* worker = "")
    {
@@ -75,7 +81,7 @@ public:
    }
 
    /// \cond CLASSIMP
-   ClassDefOverride(TGRSIProof, 1);
+   ClassDefOverride(TGRSIProof, 1)   // NOLINT(readability-else-after-return)
    /// \endcond
 };
 /*! @} */

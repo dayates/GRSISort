@@ -6,6 +6,7 @@ name: MegaLinter
 # Trigger mega-linter at every push. Action will also be visible from Pull
 # Requests to main
 on:
+  workflow_dispatch:
   # Comment this line to trigger action only on pull-requests
   # (not recommended if you don't pay for GH Actions)
   push:
@@ -60,7 +61,7 @@ jobs:
 
         # You can override MegaLinter flavor used to have faster performances
         # More info at https://megalinter.io/flavors/
-        uses: oxsecurity/megalinter/flavors/c_cpp@v7.13.0
+        uses: oxsecurity/megalinter/flavors/c_cpp@v8.1.0
 
         id: ml
 
@@ -135,7 +136,7 @@ jobs:
       # Create pull request if applicable
       # (for now works only on PR from same repository, not from forks)
       - name: Create Pull Request with applied fixes
-        uses: peter-evans/create-pull-request@v6
+        uses: peter-evans/create-pull-request@v7
         id: cpr
         if: env.APPLY_FIXES_IF_PR == 'true'
         with:

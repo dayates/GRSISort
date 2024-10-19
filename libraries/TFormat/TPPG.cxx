@@ -69,8 +69,8 @@ TPPG::~TPPG()
 {
    Clear();
    if(fPPGStatusMap != nullptr) {
-      for(auto ppgit = fPPGStatusMap->begin(); ppgit != fPPGStatusMap->end(); ppgit++) {
-         delete ppgit->second;
+      for(auto& ppgit : *fPPGStatusMap) {
+         delete ppgit.second;
       }
       delete fPPGStatusMap;
    }
@@ -79,8 +79,8 @@ TPPG::~TPPG()
 TPPG& TPPG::operator=(const TPPG& rhs)
 {
    if(fPPGStatusMap != nullptr) {
-      for(auto ppgit = fPPGStatusMap->begin(); ppgit != fPPGStatusMap->end(); ppgit++) {
-         delete ppgit->second;
+      for(auto& ppgit : *fPPGStatusMap) {
+         delete ppgit.second;
       }
       delete fPPGStatusMap;
    }
@@ -220,7 +220,7 @@ void TPPG::Print(Option_t* opt) const
       if(fOdbPPGCodes.empty()) {
          std::cout << "No ODB cycle read!" << std::endl;
       } else {
-         std::cout << "ODB cycle: " << OdbCycleLength() / 1e6 << " s" << std::endl
+         std::cout << "ODB cycle: " << OdbCycleLength() / 1000000 << " s" << std::endl
                    << "Code   Duration" << std::endl;
          for(size_t i = 0; i < fOdbPPGCodes.size(); ++i) {
             std::cout << hex(fOdbPPGCodes[i], 4) << " " << fOdbDurations[i] << std::endl;
@@ -284,7 +284,7 @@ void TPPG::Print(Option_t* opt) const
          cycleLength = numberOfCycleLength.first;
       }
    }
-   ULong64_t stateLength[4] = {0, 0, 0, 0};
+   std::array<ULong64_t, 4> stateLength = {0, 0, 0, 0};
    for(int i = 0; i < 4; ++i) {
       counter = 0;
       for(auto it = numberOfStateLengths[i].begin(); it != numberOfStateLengths[i].end(); ++it) {
@@ -304,8 +304,8 @@ void TPPG::Print(Option_t* opt) const
    }
 
    // the print statement itself
-   std::cout << "Cycle length is " << cycleLength << " in ns = " << cycleLength / 1e9 << " seconds." << std::endl;
-   std::cout << "Cycle: " << stateLength[0] / 1e9 << " s tape move, " << stateLength[1] / 1e9 << " s background, " << stateLength[2] / 1e9 << " s beam on, and " << stateLength[3] / 1e9 << " s decay" << std::endl;
+   std::cout << "Cycle length is " << cycleLength << " in ns = " << cycleLength / 1000000000 << " seconds." << std::endl;
+   std::cout << "Cycle: " << stateLength[0] / 1000000000 << " s tape move, " << stateLength[1] / 1000000000 << " s background, " << stateLength[2] / 1000000000 << " s beam on, and " << stateLength[3] / 1000000000 << " s decay" << std::endl;
    std::cout << "Offset is " << offset << " [ns]" << std::endl;
    std::cout << "Got " << fPPGStatusMap->size() - 1 << " PPG words:" << std::endl;
    for(auto& statu : status) {
@@ -383,8 +383,8 @@ bool TPPG::CalculateCycleFromData(bool verbose)
 
    // loop over all data and count how often we get each time difference between one state and the previous state
    std::array<std::map<ULong64_t, int>, 4> numberOfStateLengths;   // to calculate the length of each state (tape move, background, beam on, and decay)
-   ULong64_t                               diff;
-   for(PPGMap_t::iterator ppgIt = MapBegin(); ppgIt != MapEnd(); ++ppgIt) {
+   ULong64_t                               diff = 0;
+   for(auto ppgIt = MapBegin(); ppgIt != MapEnd(); ++ppgIt) {
       switch(ppgIt->second->GetNewPPG()) {
       case EPpgPattern::kBackground:
          diff = ppgIt->second->GetTimeStamp() - GetLastStatusTime(ppgIt->second->GetTimeStamp(), EPpgPattern::kTapeMove);
@@ -409,17 +409,17 @@ bool TPPG::CalculateCycleFromData(bool verbose)
    // (codes are already set)
    for(int i = 0; i < 4; ++i) {
       int counter = 0;
-      if(verbose) std::cout << "state " << hex(fPPGCodes[i], 4) << " checking " << numberOfStateLengths[i].size() << " lengths:";
+      if(verbose) { std::cout << "state " << hex(fPPGCodes[i], 4) << " checking " << numberOfStateLengths[i].size() << " lengths:"; }
       for(auto it : numberOfStateLengths[i]) {
          if(it.second > counter) {
-            if(verbose) std::cout << " " << it.second << ">" << counter << " => fDurations[" << i << "] = " << it.first;
+            if(verbose) { std::cout << " " << it.second << ">" << counter << " => fDurations[" << i << "] = " << it.first; }
             counter       = it.second;
             fDurations[i] = it.first;
          } else if(verbose) {
             std::cout << " " << it.second << "<" << counter << " => fDurations[" << i << "] != " << it.first;
          }
       }
-      if(verbose) std::cout << std::endl;
+      if(verbose) { std::cout << std::endl; }
    }
 
    fCycleSet = true;

@@ -149,7 +149,9 @@ private:
 
    TDirectory* fDirectory{nullptr};
 
-   ClassDefOverride(TRuntimeObjects, 0);
+   /// \cond CLASSIMP
+   ClassDefOverride(TRuntimeObjects, 0)   // NOLINT(readability-else-after-return)
+                                          /// \endcond
 };
 
 #endif /* _RUNTIMEOBJECTS_H_ */

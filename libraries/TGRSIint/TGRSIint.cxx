@@ -98,7 +98,7 @@ void TGRSIint::ApplyOptions()
       MakeBatch();
    }
 
-   bool missing_raw_file = !all_files_exist(opt->InputFiles());
+   bool missing_raw_file = !AllFilesExist(opt->InputFiles());
 
    LoadGROOTGraphics();
 
@@ -335,11 +335,7 @@ TFile* TGRSIint::OpenRootFile(const std::string& filename, Option_t* opt)
                // gFragment->SetNotify(GrutNotifier::Get());
             }
             std::cout << "file " << file->GetName() << " added to gFragment." << std::endl;
-#if ROOT_VERSION_CODE < ROOT_VERSION(6, 0, 0)
-            gFragment->AddFile(file->GetName(), TChain::kBigNumber, "FragmentTree");
-#else
             gFragment->AddFile(file->GetName(), TTree::kMaxEntries, "FragmentTree");
-#endif
          }
 
          // If AnalysisTree exists, add the file to the chain.
@@ -350,11 +346,7 @@ TFile* TGRSIint::OpenRootFile(const std::string& filename, Option_t* opt)
                // gAnalysis->SetNotify(GrutNotifier::Get());
             }
             std::cout << "file " << file->GetName() << " added to gAnalysis." << std::endl;
-#if ROOT_VERSION_CODE < ROOT_VERSION(6, 0, 0)
-            gAnalysis->AddFile(file->GetName(), TChain::kBigNumber, "AnalysisTree");
-#else
             gAnalysis->AddFile(file->GetName(), TTree::kMaxEntries, "AnalysisTree");
-#endif
          }
 
          if(file->FindObjectAny("Channel") != nullptr) {
@@ -379,7 +371,7 @@ TFile* TGRSIint::OpenRootFile(const std::string& filename, Option_t* opt)
 TRawFile* TGRSIint::OpenRawFile(const std::string& filename)
 {
    /// Opens Raw input file and stores them in _raw if successfuly opened.
-   if(!file_exists(filename.c_str())) {
+   if(!FileExists(filename.c_str())) {
       std::cerr << R"(File ")" << filename << R"(" does not exist)" << std::endl;
       return nullptr;
    }
@@ -416,7 +408,7 @@ void TGRSIint::SetupPipeline()
 
    bool missing_raw_file = false;
    for(const auto& filename : opt->InputFiles()) {
-      if(!file_exists(filename.c_str())) {
+      if(!FileExists(filename.c_str())) {
          missing_raw_file = true;
          std::cerr << "File not found: " << filename << std::endl;
       }
@@ -495,9 +487,17 @@ void TGRSIint::SetupPipeline()
    std::string output_analysis_tree_filename = opt->OutputAnalysisFile();
    if(output_analysis_tree_filename.length() == 0) {
       if(sub_run_number == -1) {
-         output_analysis_tree_filename = Form("analysis%05i.root", run_number);
+         if(opt->UseRnTuple()) {
+            output_analysis_tree_filename = Form("rntuple%05i.root", run_number);
+         } else {
+            output_analysis_tree_filename = Form("analysis%05i.root", run_number);
+         }
       } else {
-         output_analysis_tree_filename = Form("analysis%05i_%03i.root", run_number, sub_run_number);
+         if(opt->UseRnTuple()) {
+            output_analysis_tree_filename = Form("rntuple%05i_%03i.root", run_number, sub_run_number);
+         } else {
+            output_analysis_tree_filename = Form("analysis%05i_%03i.root", run_number, sub_run_number);
+         }
       }
    }
 
@@ -657,8 +657,8 @@ void TGRSIint::SetupPipeline()
 
    // If requested, write the analysis tree
    if(write_analysis_tree) {
-      TAnalysisWriteLoop* loop = TAnalysisWriteLoop::Get("8_analysis_write_loop", output_analysis_tree_filename);
-      loop->InputQueue()       = detBuildingLoop->AddOutputQueue(TGRSIOptions::Get()->AnalysisWriteQueueSize());
+      auto* loop         = TAnalysisWriteLoop::Get("8_analysis_write_loop", output_analysis_tree_filename);
+      loop->InputQueue() = detBuildingLoop->AddOutputQueue(TGRSIOptions::Get()->AnalysisWriteQueueSize());
       if(TGRSIOptions::Get()->SeparateOutOfOrder()) {
          loop->OutOfOrderQueue() = eventBuildingLoop->OutOfOrderQueue();
       }
@@ -671,7 +671,7 @@ void TGRSIint::SetupPipeline()
 void TGRSIint::RunMacroFile(const std::string& filename)
 {
    /// Runs a macro file. This happens when a .C file is provided on the command line
-   if(file_exists(filename.c_str())) {
+   if(FileExists(filename.c_str())) {
       const char* command = Form(".x %s", filename.c_str());
       ProcessLine(command);
    } else {
@@ -680,7 +680,7 @@ void TGRSIint::RunMacroFile(const std::string& filename)
       if(beginning_pos != std::string::npos && filename.back() == ')') {
          std::string trueFilename = filename.substr(0, beginning_pos);
          std::string arguments    = filename.substr(beginning_pos, std::string::npos);
-         if(file_exists(trueFilename.c_str())) {
+         if(FileExists(trueFilename.c_str())) {
             const char* command = Form(".L %s", trueFilename.c_str());
             ProcessLine(command);
             command = Form("%s%s", trueFilename.substr(0, filename.find_first_of('.')).c_str(), arguments.c_str());

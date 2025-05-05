@@ -24,7 +24,7 @@ var searchData=
   ['efficiencyhelper_2ecxx_21',['EfficiencyHelper.cxx',['../_efficiency_helper_8cxx.html',1,'']]],
   ['efficiencyhelper_2ehh_22',['EfficiencyHelper.hh',['../_efficiency_helper_8hh.html',1,'']]],
   ['efippsbits_23',['EFippsBits',['../class_t_fipps.html#ae927fab394d101f3f8a9d4ea8da546d5',1,'TFipps']]],
-  ['egainbits_24',['EGainBits',['../class_t_griffin.html#ae393925993f34a3dc3dd8bc5320cfb4e',1,'TGriffin']]],
+  ['efitting_24',['EFitting',['../class_t_source_calibration.html#af38ce0cdc864e9d077dd780264d8bbbf',1,'TSourceCalibration']]],
   ['egriffinbits_25',['EGriffinBits',['../class_t_griffin.html#a92f170ed3a460472018ea9dbd9d1f524',1,'TGriffin']]],
   ['egriffinhitbits_26',['EGriffinHitBits',['../class_t_griffin_hit.html#a7f6513bf8254138aca6b61589d507fa7',1,'TGriffinHit']]],
   ['eifinbits_27',['EIfinBits',['../class_t_ifin.html#a28acc2a15150cc7116bb48421ec3a30d',1,'TIfin']]],
